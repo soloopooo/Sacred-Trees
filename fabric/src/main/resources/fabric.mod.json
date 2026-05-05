@@ -16,10 +16,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"io.bluebeaker.sacredtrees.SacredTreesMod"
+			"ooo.soloop.sacred_trees.SacredTreesMod"
 		],
 		"client": [
-			"io.bluebeaker.sacredtrees.client.FabricClientSetup"
+			"ooo.soloop.sacred_trees.client.FabricClientSetup"
 		]
 	},
 	"depends": {
