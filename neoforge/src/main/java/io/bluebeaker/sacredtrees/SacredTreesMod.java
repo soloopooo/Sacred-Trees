@@ -5,6 +5,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.level.LevelEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +25,18 @@ public class SacredTreesMod {
 
         // Register platform hooks
         NeoPlatformHooksImpl.init();
+
+        // Register world load event for resuming tree generation
+        NeoForge.EVENT_BUS.addListener(this::onWorldLoad);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         LOGGER.info("Sacred Trees loaded!");
+    }
+
+    private void onWorldLoad(LevelEvent.Load event) {
+        if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            TreePlacementTask.resumePending(serverLevel);
+        }
     }
 }

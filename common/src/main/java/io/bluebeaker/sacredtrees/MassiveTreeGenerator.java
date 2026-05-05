@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.material.Fluids;
@@ -20,12 +21,32 @@ import java.util.Random;
 public class MassiveTreeGenerator {
     // Parametric blockstates to use
     public BlockState leaves;
+    /** Persistent (non-decaying) variant of leaves - prevents leaf decay */
+    public BlockState persistentLeaves;
     public BlockState log;
     public BlockState wood;
     public BlockState lights = null;
     public BlockState vines = null;
     public BlockState vines2 = null;
     public boolean genLightsAndVines = false;
+
+    // Collect mode for batched placement
+    private boolean collectMode = false;
+    private final java.util.ArrayList<TreePlacementTask.PlacementEntry> collectedPlacements = new java.util.ArrayList<>();
+
+    /** Switch to collect mode: instead of placing blocks, record them for batched placement. */
+    public void startCollectMode() {
+        this.collectMode = true;
+        this.collectedPlacements.clear();
+    }
+
+    /** Stop collect mode and return the list of collected placements. */
+    public java.util.List<TreePlacementTask.PlacementEntry> stopCollectMode() {
+        this.collectMode = false;
+        var result = java.util.List.copyOf(collectedPlacements);
+        collectedPlacements.clear();
+        return result;
+    }
 
     private static final byte[] otherCoordPairs = new byte[]{(byte) 2, (byte) 0, (byte) 0, (byte) 1, (byte) 2, (byte) 1};
     private static final float PI = (float) Math.PI;
@@ -55,8 +76,16 @@ public class MassiveTreeGenerator {
     private int leafNodesLength;
     private int[][] leafNodes;
 
+    private static BlockState makePersistent(BlockState leaves) {
+        if (leaves.hasProperty(BlockStateProperties.PERSISTENT)) {
+            return leaves.setValue(BlockStateProperties.PERSISTENT, true);
+        }
+        return leaves;
+    }
+
     public MassiveTreeGenerator(BlockState log, BlockState wood, BlockState leaves) {
         this.leaves = leaves;
+        this.persistentLeaves = makePersistent(leaves);
         this.log = log;
         this.wood = wood;
     }
@@ -64,6 +93,7 @@ public class MassiveTreeGenerator {
     public MassiveTreeGenerator(BlockState log, BlockState wood, BlockState leaves,
                                 BlockState lights, BlockState vines, BlockState vines2) {
         this.leaves = leaves;
+        this.persistentLeaves = makePersistent(leaves);
         this.log = log;
         this.wood = wood;
         this.lights = lights;
@@ -180,7 +210,7 @@ public class MassiveTreeGenerator {
                         BlockPos placementPos = new BlockPos(x, y, z);
                         BlockState state = world.getBlockState(placementPos);
                         Block block = state.getBlock();
-                        BlockState blockToSet = leaves;
+                        BlockState blockToSet = persistentLeaves;
 
                         if (this.genLightsAndVines) {
                             float randFloat = rand.nextFloat();
@@ -228,6 +258,8 @@ public class MassiveTreeGenerator {
         for (int i = 0, e = leafNodesLength; i < e; ++i) {
             int[] n = leafNodes[i];
             int x = n[0], yO = n[1], z = n[2];
+            // Place a wood block at the leaf node core to stabilize leaves against decay
+            this.setBlockAndNotifyAdequately(world, x, yO, z, wood);
             int y = 0;
             for (int var5 = y + leafDistanceLimit; y < var5; ++y) {
                 int size = (y != 0) && y != leafDistanceLimit - 1 ? 3 : 2;
@@ -462,9 +494,16 @@ public class MassiveTreeGenerator {
     }
 
     public boolean generate(Level world, RandomSource par2Random, BlockPos pos) {
+        return generate(world, par2Random.nextLong(), pos);
+    }
+
+    /**
+     * Generate tree using a fixed seed (deterministic - same seed = same tree).
+     * Used for batched/persistent tree generation.
+     */
+    public boolean generate(Level world, long seed, BlockPos pos) {
         this.world = world;
-        long var6 = par2Random.nextLong();
-        rand = RandomSource.create(var6);
+        rand = RandomSource.create(seed);
         basePos[0] = pos.getX();
         basePos[1] = pos.getY();
         basePos[2] = pos.getZ();
@@ -490,9 +529,18 @@ public class MassiveTreeGenerator {
     private final ArrayList<ChunkAccess> chunksToUpdate = new ArrayList<>();
 
     public void setBlockAndNotifyAdequately(Level world, int x, int y, int z, BlockState state) {
-        // Skip blocks outside world build height limits (MC 26.1 has -64 to 320 range)
+        // Skip blocks outside world build height limits
         if (y < world.getMinY() || y >= world.getMaxY()) return;
         BlockPos pos = new BlockPos(x, y, z);
+
+        // In collect mode: record placement for later batched execution
+        if (collectMode) {
+            if (safeGrowth && !canBeReplacedByLogs(world.getBlockState(pos), world, pos)) return;
+            collectedPlacements.add(new TreePlacementTask.PlacementEntry(pos.asLong(), state));
+            return;
+        }
+
+        // Normal mode: place immediately
         if (safeGrowth && !canBeReplacedByLogs(world.getBlockState(pos), world, pos)) return;
         ChunkAccess chunk = world.getChunk(pos);
         chunk.setBlockState(pos, state, 0);

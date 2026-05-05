@@ -87,8 +87,9 @@ public class ModBlocks {
     }
 
     private static Block registerBlock(String name, Block block) {
-        Registry.register(BuiltInRegistries.BLOCK,
-                Identifier.fromNamespaceAndPath(SacredTreesMod.MODID, name), block);
+        ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK,
+                Identifier.fromNamespaceAndPath(SacredTreesMod.MODID, name));
+        Registry.register(BuiltInRegistries.BLOCK, key, block);
         return block;
     }
 

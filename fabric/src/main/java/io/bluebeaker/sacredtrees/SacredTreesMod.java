@@ -1,6 +1,8 @@
 package io.bluebeaker.sacredtrees;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +18,15 @@ public class SacredTreesMod implements ModInitializer {
         // Register creative tab content
         ModCreativeTab.register();
 
-        // Initialize platform hooks (Fabric has no sapling grow event, so default is fine)
+        // Initialize platform hooks
         FabricPlatformHooksImpl.init();
+
+        // Resume pending tree generation on server start
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            for (ServerLevel level : server.getAllLevels()) {
+                TreePlacementTask.resumePending(level);
+            }
+        });
 
         LOGGER.info("Sacred Trees loaded!");
     }

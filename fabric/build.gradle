@@ -29,6 +29,8 @@ loom {
         "${mod_id}" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
+            // Include common module so resources/classes are available in dev
+            sourceSet project(':common').sourceSets.main
         }
     }
 }

@@ -19,7 +19,7 @@ public class ModCreativeTab {
     public static void register() {
         // Register creative mode tab using Fabric API
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB,
-                TAB_KEY.identifier(),
+                TAB_KEY,
                 FabricCreativeModeTab.builder()
                         .title(Component.translatable("itemGroup.sacred_trees"))
                         .icon(() -> new ItemStack(ModBlocks.OAK.MASSIVE))

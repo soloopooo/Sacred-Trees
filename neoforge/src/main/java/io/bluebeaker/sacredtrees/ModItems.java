@@ -13,42 +13,54 @@ public class ModItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(SacredTreesMod.MODID);
 
     // === Oak ===
-    public static final DeferredItem<Item> SACRED_OAK = ITEMS.registerItem("sacred_oak_sapling", props -> new BlockItem(ModBlocks.OAK.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_OAK = ITEMS.registerItem("mega_oak_sapling", props -> new BlockItem(ModBlocks.OAK.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_OAK = ITEMS.registerItem("massive_oak_sapling", props -> new FoiledBlockItem(ModBlocks.OAK.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_OAK = blockItem("sacred_oak_sapling", ModBlocks.OAK.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_OAK = blockItem("mega_oak_sapling", ModBlocks.OAK.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_OAK = foiledBlockItem("massive_oak_sapling", ModBlocks.OAK.MASSIVE, Rarity.EPIC);
 
     // === Birch ===
-    public static final DeferredItem<Item> SACRED_BIRCH = ITEMS.registerItem("sacred_birch_sapling", props -> new BlockItem(ModBlocks.BIRCH.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_BIRCH = ITEMS.registerItem("mega_birch_sapling", props -> new BlockItem(ModBlocks.BIRCH.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_BIRCH = ITEMS.registerItem("massive_birch_sapling", props -> new FoiledBlockItem(ModBlocks.BIRCH.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_BIRCH = blockItem("sacred_birch_sapling", ModBlocks.BIRCH.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_BIRCH = blockItem("mega_birch_sapling", ModBlocks.BIRCH.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_BIRCH = foiledBlockItem("massive_birch_sapling", ModBlocks.BIRCH.MASSIVE, Rarity.EPIC);
 
     // === Spruce ===
-    public static final DeferredItem<Item> SACRED_SPRUCE = ITEMS.registerItem("sacred_spruce_sapling", props -> new BlockItem(ModBlocks.SPRUCE.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_SPRUCE = ITEMS.registerItem("mega_spruce_sapling", props -> new BlockItem(ModBlocks.SPRUCE.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_SPRUCE = ITEMS.registerItem("massive_spruce_sapling", props -> new FoiledBlockItem(ModBlocks.SPRUCE.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_SPRUCE = blockItem("sacred_spruce_sapling", ModBlocks.SPRUCE.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_SPRUCE = blockItem("mega_spruce_sapling", ModBlocks.SPRUCE.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_SPRUCE = foiledBlockItem("massive_spruce_sapling", ModBlocks.SPRUCE.MASSIVE, Rarity.EPIC);
 
     // === Jungle ===
-    public static final DeferredItem<Item> SACRED_JUNGLE = ITEMS.registerItem("sacred_jungle_sapling", props -> new BlockItem(ModBlocks.JUNGLE.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_JUNGLE = ITEMS.registerItem("mega_jungle_sapling", props -> new BlockItem(ModBlocks.JUNGLE.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_JUNGLE = ITEMS.registerItem("massive_jungle_sapling", props -> new FoiledBlockItem(ModBlocks.JUNGLE.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_JUNGLE = blockItem("sacred_jungle_sapling", ModBlocks.JUNGLE.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_JUNGLE = blockItem("mega_jungle_sapling", ModBlocks.JUNGLE.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_JUNGLE = foiledBlockItem("massive_jungle_sapling", ModBlocks.JUNGLE.MASSIVE, Rarity.EPIC);
 
     // === Acacia ===
-    public static final DeferredItem<Item> SACRED_ACACIA = ITEMS.registerItem("sacred_acacia_sapling", props -> new BlockItem(ModBlocks.ACACIA.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_ACACIA = ITEMS.registerItem("mega_acacia_sapling", props -> new BlockItem(ModBlocks.ACACIA.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_ACACIA = ITEMS.registerItem("massive_acacia_sapling", props -> new FoiledBlockItem(ModBlocks.ACACIA.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_ACACIA = blockItem("sacred_acacia_sapling", ModBlocks.ACACIA.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_ACACIA = blockItem("mega_acacia_sapling", ModBlocks.ACACIA.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_ACACIA = foiledBlockItem("massive_acacia_sapling", ModBlocks.ACACIA.MASSIVE, Rarity.EPIC);
 
     // === Dark Oak ===
-    public static final DeferredItem<Item> SACRED_DARK_OAK = ITEMS.registerItem("sacred_dark_oak_sapling", props -> new BlockItem(ModBlocks.DARK_OAK.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_DARK_OAK = ITEMS.registerItem("mega_dark_oak_sapling", props -> new BlockItem(ModBlocks.DARK_OAK.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_DARK_OAK = ITEMS.registerItem("massive_dark_oak_sapling", props -> new FoiledBlockItem(ModBlocks.DARK_OAK.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_DARK_OAK = blockItem("sacred_dark_oak_sapling", ModBlocks.DARK_OAK.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_DARK_OAK = blockItem("mega_dark_oak_sapling", ModBlocks.DARK_OAK.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_DARK_OAK = foiledBlockItem("massive_dark_oak_sapling", ModBlocks.DARK_OAK.MASSIVE, Rarity.EPIC);
 
     // === Crimson ===
-    public static final DeferredItem<Item> SACRED_CRIMSON = ITEMS.registerItem("sacred_crimson_fungus", props -> new BlockItem(ModBlocks.CRIMSON.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_CRIMSON = ITEMS.registerItem("mega_crimson_fungus", props -> new BlockItem(ModBlocks.CRIMSON.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_CRIMSON = ITEMS.registerItem("massive_crimson_fungus", props -> new FoiledBlockItem(ModBlocks.CRIMSON.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_CRIMSON = blockItem("sacred_crimson_fungus", ModBlocks.CRIMSON.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_CRIMSON = blockItem("mega_crimson_fungus", ModBlocks.CRIMSON.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_CRIMSON = foiledBlockItem("massive_crimson_fungus", ModBlocks.CRIMSON.MASSIVE, Rarity.EPIC);
 
     // === Warped ===
-    public static final DeferredItem<Item> SACRED_WARPED = ITEMS.registerItem("sacred_warped_fungus", props -> new BlockItem(ModBlocks.WARPED.SACRED.get(), props.rarity(Rarity.RARE)));
-    public static final DeferredItem<Item> MEGA_WARPED = ITEMS.registerItem("mega_warped_fungus", props -> new BlockItem(ModBlocks.WARPED.MEGA.get(), props.rarity(Rarity.UNCOMMON)));
-    public static final DeferredItem<Item> MASSIVE_WARPED = ITEMS.registerItem("massive_warped_fungus", props -> new FoiledBlockItem(ModBlocks.WARPED.MASSIVE.get(), props.rarity(Rarity.EPIC)));
+    public static final DeferredItem<Item> SACRED_WARPED = blockItem("sacred_warped_fungus", ModBlocks.WARPED.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_WARPED = blockItem("mega_warped_fungus", ModBlocks.WARPED.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_WARPED = foiledBlockItem("massive_warped_fungus", ModBlocks.WARPED.MASSIVE, Rarity.EPIC);
+
+    /** Register a BlockItem with block description prefix. */
+    private static DeferredItem<Item> blockItem(String name, DeferredBlock<?> block, Rarity rarity) {
+        return ITEMS.registerItem(name, props -> new BlockItem(block.get(),
+                props.useBlockDescriptionPrefix().rarity(rarity)));
+    }
+
+    /** Register a foiled (enchanted glint) BlockItem. */
+    private static DeferredItem<Item> foiledBlockItem(String name, DeferredBlock<?> block, Rarity rarity) {
+        return ITEMS.registerItem(name, props -> new FoiledBlockItem(block.get(),
+                props.useBlockDescriptionPrefix().rarity(rarity)));
+    }
 }

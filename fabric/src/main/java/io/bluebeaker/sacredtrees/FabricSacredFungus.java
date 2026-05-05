@@ -20,21 +20,29 @@ public class FabricSacredFungus extends AbstractSacredFungus {
 
     @Override
     protected void generateTree(ServerLevel world, BlockPos pos, BlockState state, RandomSource random) {
+        MassiveTreeGenerator gen = new MassiveTreeGenerator(log, wood, leaves, lights, vines, vines2);
         switch (type) {
             case SACRED_SPRING:
-                TreeTypes.generateSacredSpringRubberTree(
-                        new MassiveTreeGenerator(log, wood, leaves, lights, vines, vines2), world, random, pos);
+                gen.setTreeScale(6 + random.nextInt(4), 1f, 0.9f)
+                    .setLeafAttenuation(0.35f).setMinTrunkSize(4);
                 break;
             case MEGA:
-                TreeTypes.generateMegaRubberTree(
-                        new MassiveTreeGenerator(log, wood, leaves, lights, vines, vines2), world, random, pos, false);
+                gen.setTreeScale(4 + random.nextInt(3), 0.8f, 0.7f)
+                    .setLeafAttenuation(0.6f).setSloped(true).setSafe(false);
                 break;
             case MASSIVE:
-                TreeTypes.generateMassiveRubberTree(
-                        new MassiveTreeGenerator(log, wood, leaves, lights, vines, vines2), world, random, pos);
-                break;
-            default:
+                gen.setSloped(true).setLeafAttenuation(0.45f).setSloped(false);
                 break;
         }
+        TreePlacementTask.startPersistentGrowth(gen, world, random, pos,
+                getTreeKind(), true, type);
+    }
+
+    private String getTreeKind() {
+        net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(leaves.getBlock());
+        String path = id.getPath();
+        if (path.contains("crimson") || path.contains("nether_wart")) return "crimson";
+        if (path.contains("warped")) return "warped";
+        return "crimson";
     }
 }
