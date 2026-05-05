@@ -1,0 +1,76 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+// Depends on common module
+dependencies {
+    implementation project(':common')
+}
+
+// Ensure common module is compiled first
+tasks.named('compileJava') {
+    dependsOn project(':common').tasks.named('compileJava')
+}
+
+// Include common classes in the Fabric JAR
+jar {
+    from project(':common').sourceSets.main.output
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+base {
+    archivesName = "${mod_id}-fabric"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+repositories {
+    // Add additional repositories if needed
+}
+
+dependencies {
+    // Minecraft and mappings - MC 26.1 is unobfuscated, no mappings needed
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+    // Fabric loader + API
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+version = project.mod_version
+
+processResources {
+    def ver = project.version
+    inputs.property "mod_version", ver
+
+    filesMatching("fabric.mod.json") {
+        expand "mod_version": ver
+    }
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+// Configure maven publication
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        // Add publishing repos here if needed
+    }
+}

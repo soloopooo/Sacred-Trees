@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "sacred_trees",
+	"version": "${mod_version}",
+	"name": "Sacred Trees",
+	"description": "Brings the Sacred Rubber Tree from Minefactory Reloaded back!\\nAdds Mega, Sacred and Enchanted Sacred saplings for every vanilla trees, including fungus.",
+	"authors": [
+		"Blue_Beaker"
+	],
+	"contact": {
+		"homepage": "https://github.com/Blue-Beaker/Sacred-Trees",
+		"sources": "https://github.com/Blue-Beaker/Sacred-Trees"
+	},
+	"license": "All Rights Reserved",
+	"icon": "assets/sacred_trees/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.bluebeaker.sacredtrees.SacredTreesMod"
+		],
+		"client": [
+			"io.bluebeaker.sacredtrees.client.FabricClientSetup"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

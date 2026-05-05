@@ -1,4 +1,0 @@
-{
-    "parent":"minecraft:block/oak_sapling",
-    "render_type": "cutout"
-}

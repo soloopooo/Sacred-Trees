@@ -1,4 +1,0 @@
-{
-    "parent":"minecraft:block/acacia_sapling",
-    "render_type": "cutout"
-}

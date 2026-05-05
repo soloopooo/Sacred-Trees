@@ -1,0 +1,74 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.141'
+    id 'idea'
+}
+
+// Depends on common module
+dependencies {
+    implementation project(':common')
+}
+
+// Include common classes in the NeoForge JAR
+jar {
+    from project(':common').sourceSets.main.output
+}
+
+version = project.mod_version
+
+base {
+    archivesName = "${mod_id}-neoforge"
+}
+
+// Java toolchain already set by root build.gradle (Java 25)
+
+neoForge {
+    version = project.neo_version
+
+    // Default run configurations
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            clientData()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+            sourceSet(project(':common').sourceSets.main)
+        }
+    }
+}
+
+tasks.named('compileJava') {
+    dependsOn project(':common').tasks.named('compileJava')
+}
+
+// Include common module classes and resources in the mod JAR
+tasks.named('jar') {
+    from(project(':common').sourceSets.main.output)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+processResources {
+    // Expand variables in neoforge.mods.toml
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand project.properties
+    }
+}

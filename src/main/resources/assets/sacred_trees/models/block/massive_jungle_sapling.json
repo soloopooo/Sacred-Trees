@@ -1,4 +1,0 @@
-{
-    "parent":"minecraft:block/jungle_sapling",
-    "render_type": "cutout"
-}
