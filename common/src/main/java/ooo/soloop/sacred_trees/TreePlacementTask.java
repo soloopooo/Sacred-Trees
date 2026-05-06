@@ -2,7 +2,9 @@ package ooo.soloop.sacred_trees;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,14 +25,16 @@ public class TreePlacementTask implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger("TreeGen");
     /** Blocks placed per tick. Lower = smoother but slower. */
     public static final int BLOCKS_PER_TICK = 500;
+    /** Chunk radius to keep force-loaded during tree generation. */
+    private static final int CHUNK_RADIUS = 3;
 
     /** Represents a single block to place. Position stored as long (BlockPos.asLong). */
     public record PlacementEntry(long pos, BlockState state) {}
 
     private final ServerLevel level;
     private final List<PlacementEntry> placements;
+    private final ChunkPos centerChunk;
     private int index;
-    private final ArrayList<ChunkAccess> chunksToUpdate = new ArrayList<>();
     private int blocksAdded = 0;
     private final long startTime;
     /** Optional pending tree reference for persistence. */
@@ -47,6 +51,18 @@ public class TreePlacementTask implements Runnable {
         this.index = pendingTree != null ? pendingTree.progress : 0;
         this.pendingTree = pendingTree;
         this.startTime = System.currentTimeMillis();
+
+        // Determine center chunk from first placement
+        if (!placements.isEmpty()) {
+            BlockPos firstPos = BlockPos.of(placements.get(0).pos);
+            this.centerChunk = new ChunkPos(firstPos.getX() >> 4, firstPos.getZ() >> 4);
+        } else {
+            this.centerChunk = new ChunkPos(0, 0);
+        }
+
+        // Keep chunks force-loaded during tree generation to prevent
+        // the sapling from disappearing when the player walks away.
+        level.getChunkSource().addTicketWithRadius(TicketType.FORCED, centerChunk, CHUNK_RADIUS);
     }
 
     public TreePlacementTask(ServerLevel level, List<PlacementEntry> placements) {
@@ -62,7 +78,6 @@ public class TreePlacementTask implements Runnable {
             ChunkAccess chunk = level.getChunk(pos);
             chunk.setBlockState(pos, entry.state, 0);
             level.getChunkSource().blockChanged(pos);
-            if (!chunksToUpdate.contains(chunk)) chunksToUpdate.add(chunk);
             blocksAdded++;
         }
         index = end;
@@ -76,7 +91,8 @@ public class TreePlacementTask implements Runnable {
         if (index < placements.size()) {
             level.getServer().execute(this);
         } else {
-            // Complete
+            // Complete - remove chunk ticket and clean up
+            level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, centerChunk, CHUNK_RADIUS);
             if (pendingTree != null) {
                 TreeGenerationSavedData.get(level).removePending(pendingTree);
             }
