@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - '**'
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - '**'
@@ -49,3 +51,28 @@ jobs:
         with:
           name: sacred_trees-fabric
           path: fabric/build/libs/*.jar
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download NeoForge JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: sacred_trees-neoforge
+
+      - name: Download Fabric JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: sacred_trees-fabric
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.jar
+          generate_release_notes: true
