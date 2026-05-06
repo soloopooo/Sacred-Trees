@@ -1,7 +1,6 @@
 package ooo.soloop.sacred_trees;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -12,11 +11,9 @@ import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.chunk.ChunkAccess;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.material.Fluids;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -422,7 +419,6 @@ public class MassiveTreeGenerator {
 
         BlockPos pos = new BlockPos(basePos[0], basePos[1] - 1, basePos[2]);
         BlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
 
         if (!canSustainPlant(state, world, pos)) {
             DEBUG_LOGGER.info("validTreeLocation FAIL at ({},{},{}): block below is {}",
@@ -538,7 +534,6 @@ public class MassiveTreeGenerator {
         }
     }
 
-    private int blocksAdded = 0;
     private final ArrayList<ChunkAccess> chunksToUpdate = new ArrayList<>();
 
     public void setBlockAndNotifyAdequately(Level world, int x, int y, int z, BlockState state) {
@@ -561,7 +556,6 @@ public class MassiveTreeGenerator {
             ((ServerLevel) world).getChunkSource().blockChanged(pos);
         }
         if (!chunksToUpdate.contains(chunk)) chunksToUpdate.add(chunk);
-        ++blocksAdded;
     }
 
     public void updateChunks() {
@@ -569,11 +563,4 @@ public class MassiveTreeGenerator {
         // Light engine manual updates are no longer needed.
     }
 
-    public static boolean debug = true;
-    private static final org.slf4j.Logger logger =
-            org.slf4j.LoggerFactory.getLogger("Tree logger");
-
-    private void logDebug(String message) {
-        if (debug) logger.info(message);
-    }
 }

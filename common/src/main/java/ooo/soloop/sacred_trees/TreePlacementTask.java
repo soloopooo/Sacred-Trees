@@ -8,7 +8,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -28,8 +27,6 @@ public class TreePlacementTask implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger("TreeGen");
     /** Blocks placed per tick. Lower = smoother but slower. */
     public static final int BLOCKS_PER_TICK = 500;
-    /** Blocks synced to client per tick. */
-    private static final int SYNC_BLOCKS_PER_TICK = 50;
     private static final int CHUNK_RADIUS = 16;
 
     /** Represents a single block to place. Position stored as long (BlockPos.asLong). */
