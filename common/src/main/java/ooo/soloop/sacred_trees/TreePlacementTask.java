@@ -220,6 +220,9 @@ public class TreePlacementTask implements Runnable {
             case "jungle": log = Blocks.JUNGLE_LOG; wood = Blocks.JUNGLE_WOOD; leaves = Blocks.JUNGLE_LEAVES; break;
             case "acacia": log = Blocks.ACACIA_LOG; wood = Blocks.ACACIA_WOOD; leaves = Blocks.ACACIA_LEAVES; break;
             case "dark_oak": log = Blocks.DARK_OAK_LOG; wood = Blocks.DARK_OAK_WOOD; leaves = Blocks.DARK_OAK_LEAVES; break;
+            case "cherry": log = Blocks.CHERRY_LOG; wood = Blocks.CHERRY_WOOD; leaves = Blocks.CHERRY_LEAVES; break;
+            case "mangrove": log = Blocks.MANGROVE_LOG; wood = Blocks.MANGROVE_WOOD; leaves = Blocks.MANGROVE_LEAVES; break;
+            case "pale_oak": log = Blocks.PALE_OAK_LOG; wood = Blocks.PALE_OAK_WOOD; leaves = Blocks.PALE_OAK_LEAVES; break;
             case "crimson":
                 log = Blocks.CRIMSON_STEM; wood = Blocks.CRIMSON_HYPHAE; leaves = Blocks.NETHER_WART_BLOCK;
                 lights = Blocks.SHROOMLIGHT; vines = Blocks.WEEPING_VINES_PLANT; vines2 = Blocks.WEEPING_VINES;

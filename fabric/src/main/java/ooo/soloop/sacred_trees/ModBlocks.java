@@ -26,6 +26,14 @@ public class ModBlocks {
     public static final SaplingVariants DARK_OAK = registerSaplingTypes("dark_oak_sapling",
             Blocks.DARK_OAK_LOG, Blocks.DARK_OAK_WOOD, Blocks.DARK_OAK_LEAVES);
 
+    // New tree types
+    public static final SaplingVariants CHERRY = registerSaplingTypes("cherry_sapling",
+            Blocks.CHERRY_LOG, Blocks.CHERRY_WOOD, Blocks.CHERRY_LEAVES);
+    public static final SaplingVariants MANGROVE = registerSaplingTypes("mangrove_sapling",
+            Blocks.MANGROVE_LOG, Blocks.MANGROVE_WOOD, Blocks.MANGROVE_LEAVES);
+    public static final SaplingVariants PALE_OAK = registerSaplingTypes("pale_oak_sapling",
+            Blocks.PALE_OAK_LOG, Blocks.PALE_OAK_WOOD, Blocks.PALE_OAK_LEAVES);
+
     // Fungus variants
     public static final SaplingVariants CRIMSON = registerFungusTypes("crimson_fungus",
             Blocks.CRIMSON_STEM, Blocks.CRIMSON_HYPHAE, Blocks.NETHER_WART_BLOCK,

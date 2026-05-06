@@ -39,6 +39,9 @@ public class FabricSacredSapling extends AbstractSacredSapling {
     private String getTreeKind() {
         net.minecraft.resources.Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(leaves.getBlock());
         String path = id.getPath();
+        if (path.contains("cherry")) return "cherry";
+        if (path.contains("mangrove")) return "mangrove";
+        if (path.contains("pale_oak")) return "pale_oak";
         if (path.contains("oak")) return "oak";
         if (path.contains("birch")) return "birch";
         if (path.contains("spruce")) return "spruce";

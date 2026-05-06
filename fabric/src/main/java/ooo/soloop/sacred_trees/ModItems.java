@@ -38,6 +38,18 @@ public class ModItems {
         registerBlockItem("mega_dark_oak_sapling", ModBlocks.DARK_OAK.MEGA, Rarity.UNCOMMON);
         registerBlockItem("massive_dark_oak_sapling", ModBlocks.DARK_OAK.MASSIVE, Rarity.EPIC, true);
 
+        registerBlockItem("sacred_cherry_sapling", ModBlocks.CHERRY.SACRED, Rarity.RARE);
+        registerBlockItem("mega_cherry_sapling", ModBlocks.CHERRY.MEGA, Rarity.UNCOMMON);
+        registerBlockItem("massive_cherry_sapling", ModBlocks.CHERRY.MASSIVE, Rarity.EPIC, true);
+
+        registerBlockItem("sacred_mangrove_sapling", ModBlocks.MANGROVE.SACRED, Rarity.RARE);
+        registerBlockItem("mega_mangrove_sapling", ModBlocks.MANGROVE.MEGA, Rarity.UNCOMMON);
+        registerBlockItem("massive_mangrove_sapling", ModBlocks.MANGROVE.MASSIVE, Rarity.EPIC, true);
+
+        registerBlockItem("sacred_pale_oak_sapling", ModBlocks.PALE_OAK.SACRED, Rarity.RARE);
+        registerBlockItem("mega_pale_oak_sapling", ModBlocks.PALE_OAK.MEGA, Rarity.UNCOMMON);
+        registerBlockItem("massive_pale_oak_sapling", ModBlocks.PALE_OAK.MASSIVE, Rarity.EPIC, true);
+
         registerBlockItem("sacred_crimson_fungus", ModBlocks.CRIMSON.SACRED, Rarity.RARE);
         registerBlockItem("mega_crimson_fungus", ModBlocks.CRIMSON.MEGA, Rarity.UNCOMMON);
         registerBlockItem("massive_crimson_fungus", ModBlocks.CRIMSON.MASSIVE, Rarity.EPIC, true);

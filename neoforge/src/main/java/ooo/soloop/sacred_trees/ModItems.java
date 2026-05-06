@@ -42,6 +42,21 @@ public class ModItems {
     public static final DeferredItem<Item> MEGA_DARK_OAK = blockItem("mega_dark_oak_sapling", ModBlocks.DARK_OAK.MEGA, Rarity.UNCOMMON);
     public static final DeferredItem<Item> MASSIVE_DARK_OAK = foiledBlockItem("massive_dark_oak_sapling", ModBlocks.DARK_OAK.MASSIVE, Rarity.EPIC);
 
+    // === Cherry ===
+    public static final DeferredItem<Item> SACRED_CHERRY = blockItem("sacred_cherry_sapling", ModBlocks.CHERRY.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_CHERRY = blockItem("mega_cherry_sapling", ModBlocks.CHERRY.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_CHERRY = foiledBlockItem("massive_cherry_sapling", ModBlocks.CHERRY.MASSIVE, Rarity.EPIC);
+
+    // === Mangrove ===
+    public static final DeferredItem<Item> SACRED_MANGROVE = blockItem("sacred_mangrove_sapling", ModBlocks.MANGROVE.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_MANGROVE = blockItem("mega_mangrove_sapling", ModBlocks.MANGROVE.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_MANGROVE = foiledBlockItem("massive_mangrove_sapling", ModBlocks.MANGROVE.MASSIVE, Rarity.EPIC);
+
+    // === Pale Oak ===
+    public static final DeferredItem<Item> SACRED_PALE_OAK = blockItem("sacred_pale_oak_sapling", ModBlocks.PALE_OAK.SACRED, Rarity.RARE);
+    public static final DeferredItem<Item> MEGA_PALE_OAK = blockItem("mega_pale_oak_sapling", ModBlocks.PALE_OAK.MEGA, Rarity.UNCOMMON);
+    public static final DeferredItem<Item> MASSIVE_PALE_OAK = foiledBlockItem("massive_pale_oak_sapling", ModBlocks.PALE_OAK.MASSIVE, Rarity.EPIC);
+
     // === Crimson ===
     public static final DeferredItem<Item> SACRED_CRIMSON = blockItem("sacred_crimson_fungus", ModBlocks.CRIMSON.SACRED, Rarity.RARE);
     public static final DeferredItem<Item> MEGA_CRIMSON = blockItem("mega_crimson_fungus", ModBlocks.CRIMSON.MEGA, Rarity.UNCOMMON);

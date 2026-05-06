@@ -1,5 +1,5 @@
 {
-    "itemGroup.sacred_trees":"Sacred Trees",
+    "itemGroup.sacred_trees": "Sacred Trees",
     "block.sacred_trees.sacred_oak_sapling": "Sacred Oak Sapling",
     "block.sacred_trees.sacred_birch_sapling": "Sacred Birch Sapling",
     "block.sacred_trees.sacred_spruce_sapling": "Sacred Spruce Sapling",
@@ -23,5 +23,14 @@
     "block.sacred_trees.mega_crimson_fungus": "Mega Crimson Fungus",
     "block.sacred_trees.mega_warped_fungus": "Mega Warped Fungus",
     "block.sacred_trees.massive_crimson_fungus": "Sacred Crimson Fungus",
-    "block.sacred_trees.massive_warped_fungus": "Sacred Warped Fungus"
+    "block.sacred_trees.massive_warped_fungus": "Sacred Warped Fungus",
+    "block.sacred_trees.sacred_cherry_sapling": "Sacred Cherry Sapling",
+    "block.sacred_trees.mega_cherry_sapling": "Mega Cherry Sapling",
+    "block.sacred_trees.massive_cherry_sapling": "Massive Cherry Sapling",
+    "block.sacred_trees.sacred_mangrove_sapling": "Sacred Mangrove Propagule",
+    "block.sacred_trees.mega_mangrove_sapling": "Mega Mangrove Propagule",
+    "block.sacred_trees.massive_mangrove_sapling": "Massive Mangrove Propagule",
+    "block.sacred_trees.sacred_pale_oak_sapling": "Sacred Pale Oak Sapling",
+    "block.sacred_trees.mega_pale_oak_sapling": "Mega Pale Oak Sapling",
+    "block.sacred_trees.massive_pale_oak_sapling": "Massive Pale Oak Sapling"
 }

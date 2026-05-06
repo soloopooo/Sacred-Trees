@@ -35,6 +35,15 @@ public class ModCreativeTab {
                         output.accept(ModItems.SACRED_DARK_OAK.get());
                         output.accept(ModItems.MEGA_DARK_OAK.get());
                         output.accept(ModItems.MASSIVE_DARK_OAK.get());
+                        output.accept(ModItems.SACRED_CHERRY.get());
+                        output.accept(ModItems.MEGA_CHERRY.get());
+                        output.accept(ModItems.MASSIVE_CHERRY.get());
+                        output.accept(ModItems.SACRED_MANGROVE.get());
+                        output.accept(ModItems.MEGA_MANGROVE.get());
+                        output.accept(ModItems.MASSIVE_MANGROVE.get());
+                        output.accept(ModItems.SACRED_PALE_OAK.get());
+                        output.accept(ModItems.MEGA_PALE_OAK.get());
+                        output.accept(ModItems.MASSIVE_PALE_OAK.get());
                         output.accept(ModItems.SACRED_CRIMSON.get());
                         output.accept(ModItems.MEGA_CRIMSON.get());
                         output.accept(ModItems.MASSIVE_CRIMSON.get());

@@ -50,6 +50,15 @@ public class ModCreativeTab {
         output.accept(new ItemStack(ModBlocks.DARK_OAK.SACRED));
         output.accept(new ItemStack(ModBlocks.DARK_OAK.MEGA));
         output.accept(new ItemStack(ModBlocks.DARK_OAK.MASSIVE));
+        output.accept(new ItemStack(ModBlocks.CHERRY.SACRED));
+        output.accept(new ItemStack(ModBlocks.CHERRY.MEGA));
+        output.accept(new ItemStack(ModBlocks.CHERRY.MASSIVE));
+        output.accept(new ItemStack(ModBlocks.MANGROVE.SACRED));
+        output.accept(new ItemStack(ModBlocks.MANGROVE.MEGA));
+        output.accept(new ItemStack(ModBlocks.MANGROVE.MASSIVE));
+        output.accept(new ItemStack(ModBlocks.PALE_OAK.SACRED));
+        output.accept(new ItemStack(ModBlocks.PALE_OAK.MEGA));
+        output.accept(new ItemStack(ModBlocks.PALE_OAK.MASSIVE));
         output.accept(new ItemStack(ModBlocks.CRIMSON.SACRED));
         output.accept(new ItemStack(ModBlocks.CRIMSON.MEGA));
         output.accept(new ItemStack(ModBlocks.CRIMSON.MASSIVE));
