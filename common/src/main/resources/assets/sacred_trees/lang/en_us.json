@@ -33,7 +33,7 @@
     "block.sacred_trees.sacred_pale_oak_sapling": "Sacred Pale Oak Sapling",
     "block.sacred_trees.mega_pale_oak_sapling": "Mega Pale Oak Sapling",
     "block.sacred_trees.massive_pale_oak_sapling": "Enchanted Sacred Pale Oak Sapling",
-    "message.sacred_trees.growing": "§6[Sacred Trees]§e Tree growing at §a%d, %d, %d§e (~%d sec), server may lag...",
+    "message.sacred_trees.growing": "§6[Sacred Trees]§e Tree growing at §a%d, %d, %d§e (%d blocks), server may lag...",
     "message.sacred_trees.done": "§6[Sacred Trees]§a Tree growth complete!",
     "message.sacred_trees.failed": "§cTree at §4%d, %d, %d§c failed to grow (insufficient space)"
 }

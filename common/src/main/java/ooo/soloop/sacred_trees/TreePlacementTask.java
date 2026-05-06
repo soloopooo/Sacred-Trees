@@ -214,11 +214,11 @@ public class TreePlacementTask implements Runnable {
         }
 
         // Save pending tree to world data
-        long approxSeconds = placements.size() / (BLOCKS_PER_TICK * 20L) + 5;
+        long blockCount = placements.size();
         for (ServerPlayer player : level.getPlayers(p -> true)) {
             player.sendSystemMessage(Component.translatable(
                     "message.sacred_trees.growing",
-                    pos.getX(), pos.getY(), pos.getZ(), approxSeconds));
+                    pos.getX(), pos.getY(), pos.getZ(), blockCount));
         }
 
         TreeGenerationSavedData.PendingTree pending = new TreeGenerationSavedData.PendingTree(
