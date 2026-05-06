@@ -318,6 +318,11 @@ public class TreePlacementTask implements Runnable {
                     vines2 != null ? vines2.defaultBlockState() : null
             );
         } else {
+            if ("mangrove".equals(tree.treeKind)) {
+                return new MangroveTreeGenerator(
+                        log.defaultBlockState(), wood.defaultBlockState(), leaves.defaultBlockState()
+                );
+            }
             return new MassiveTreeGenerator(
                     log.defaultBlockState(), wood.defaultBlockState(), leaves.defaultBlockState()
             );

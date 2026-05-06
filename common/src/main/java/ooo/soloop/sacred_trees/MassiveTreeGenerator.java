@@ -52,12 +52,12 @@ public class MassiveTreeGenerator {
     private static final byte[] otherCoordPairs = new byte[]{(byte) 2, (byte) 0, (byte) 0, (byte) 1, (byte) 2, (byte) 1};
     private static final float PI = (float) Math.PI;
 
-    private RandomSource rand = RandomSource.create();
+    protected RandomSource rand = RandomSource.create();
 
     /** Running variables */
-    private Level world;
+    protected Level world;
     private int[] basePos = new int[]{0, 0, 0};
-    private int heightLimit = 0;
+    protected int heightLimit = 0;
     private int minHeight = -1;
     private int height;
     private int leafBases;
@@ -240,7 +240,7 @@ public class MassiveTreeGenerator {
                state.is(Blocks.AIR) || state.getFluidState().is(Fluids.WATER);
     }
 
-    private static boolean canBeReplacedByLogs(BlockState state, Level level, BlockPos pos) {
+    protected static boolean canBeReplacedByLogs(BlockState state, Level level, BlockPos pos) {
         return state.isAir() || state.canBeReplaced() ||
                state.is(Blocks.AIR) || state.getFluidState().is(Fluids.WATER) ||
                state.getBlock() instanceof SaplingBlock;

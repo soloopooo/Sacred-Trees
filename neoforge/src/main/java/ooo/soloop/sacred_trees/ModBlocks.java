@@ -26,7 +26,7 @@ public class ModBlocks {
     // New tree types
     public static final SaplingVariants CHERRY = registerSaplingTypes("cherry_sapling",
             Blocks.CHERRY_LOG, Blocks.CHERRY_WOOD, Blocks.CHERRY_LEAVES);
-    public static final SaplingVariants MANGROVE = registerSaplingTypes("mangrove_sapling",
+    public static final SaplingVariants MANGROVE = registerMangroveTypes("mangrove_sapling",
             Blocks.MANGROVE_LOG, Blocks.MANGROVE_WOOD, Blocks.MANGROVE_LEAVES);
     public static final SaplingVariants PALE_OAK = registerSaplingTypes("pale_oak_sapling",
             Blocks.PALE_OAK_LOG, Blocks.PALE_OAK_WOOD, Blocks.PALE_OAK_LEAVES);
@@ -64,6 +64,20 @@ public class ModBlocks {
                         BlockBehaviour.Properties::of),
                 BLOCKS.registerBlock("massive_" + basename,
                         p -> new NeoSacredFungus(log, wood, leaves, lights, vines, vines2, p, AbstractSacredSapling.Type.MASSIVE),
+                        BlockBehaviour.Properties::of)
+        );
+    }
+
+    private static SaplingVariants registerMangroveTypes(String basename, Block log, Block wood, Block leaves) {
+        return new SaplingVariants(
+                BLOCKS.registerBlock("sacred_" + basename,
+                        p -> new NeoSacredMangrovePropagule(log, wood, leaves, p, AbstractSacredSapling.Type.SACRED_SPRING),
+                        BlockBehaviour.Properties::of),
+                BLOCKS.registerBlock("mega_" + basename,
+                        p -> new NeoSacredMangrovePropagule(log, wood, leaves, p, AbstractSacredSapling.Type.MEGA),
+                        BlockBehaviour.Properties::of),
+                BLOCKS.registerBlock("massive_" + basename,
+                        p -> new NeoSacredMangrovePropagule(log, wood, leaves, p, AbstractSacredSapling.Type.MASSIVE),
                         BlockBehaviour.Properties::of)
         );
     }

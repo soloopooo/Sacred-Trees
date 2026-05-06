@@ -29,7 +29,7 @@ public class ModBlocks {
     // New tree types
     public static final SaplingVariants CHERRY = registerSaplingTypes("cherry_sapling",
             Blocks.CHERRY_LOG, Blocks.CHERRY_WOOD, Blocks.CHERRY_LEAVES);
-    public static final SaplingVariants MANGROVE = registerSaplingTypes("mangrove_sapling",
+    public static final SaplingVariants MANGROVE = registerMangroveTypes("mangrove_sapling",
             Blocks.MANGROVE_LOG, Blocks.MANGROVE_WOOD, Blocks.MANGROVE_LEAVES);
     public static final SaplingVariants PALE_OAK = registerSaplingTypes("pale_oak_sapling",
             Blocks.PALE_OAK_LOG, Blocks.PALE_OAK_WOOD, Blocks.PALE_OAK_LEAVES);
@@ -91,6 +91,17 @@ public class ModBlocks {
                         new FabricSacredFungus(log, wood, leaves, lights, vines, vines2, keyedFungusProperties("mega_" + basename), AbstractSacredSapling.Type.MEGA)),
                 registerBlock("massive_" + basename,
                         new FabricSacredFungus(log, wood, leaves, lights, vines, vines2, keyedFungusProperties("massive_" + basename), AbstractSacredSapling.Type.MASSIVE))
+        );
+    }
+
+    private static SaplingVariants registerMangroveTypes(String basename, Block log, Block wood, Block leaves) {
+        return new SaplingVariants(
+                registerBlock("sacred_" + basename,
+                        new FabricSacredMangrovePropagule(log, wood, leaves, keyedProperties("sacred_" + basename), AbstractSacredSapling.Type.SACRED_SPRING)),
+                registerBlock("mega_" + basename,
+                        new FabricSacredMangrovePropagule(log, wood, leaves, keyedProperties("mega_" + basename), AbstractSacredSapling.Type.MEGA)),
+                registerBlock("massive_" + basename,
+                        new FabricSacredMangrovePropagule(log, wood, leaves, keyedProperties("massive_" + basename), AbstractSacredSapling.Type.MASSIVE))
         );
     }
 
