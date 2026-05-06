@@ -311,7 +311,7 @@ public class TreePlacementTask implements Runnable {
         }
 
         if (isFungus) {
-            return new MassiveTreeGenerator(
+            return new FungusTreeGenerator(
                     log.defaultBlockState(), wood.defaultBlockState(), leaves.defaultBlockState(),
                     lights != null ? lights.defaultBlockState() : null,
                     vines != null ? vines.defaultBlockState() : null,

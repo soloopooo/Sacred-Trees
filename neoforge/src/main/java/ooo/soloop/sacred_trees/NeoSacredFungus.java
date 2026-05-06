@@ -20,7 +20,7 @@ public class NeoSacredFungus extends AbstractSacredFungus {
 
     @Override
     protected void generateTree(ServerLevel world, BlockPos pos, BlockState state, RandomSource random) {
-        MassiveTreeGenerator gen = new MassiveTreeGenerator(log, wood, leaves, lights, vines, vines2);
+        FungusTreeGenerator gen = new FungusTreeGenerator(log, wood, leaves, lights, vines, vines2);
         switch (type) {
             case SACRED_SPRING:
                 gen.setTreeScale(6 + random.nextInt(4), 1f, 0.9f)
