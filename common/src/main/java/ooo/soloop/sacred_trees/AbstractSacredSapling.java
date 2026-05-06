@@ -13,7 +13,11 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class AbstractSacredSapling extends SaplingBlock {
+    private static final Logger LOGGER = LoggerFactory.getLogger("TreeGenDebug");
     public static final IntegerProperty STAGE = BlockStateProperties.STAGE;
     protected BlockState log;
     protected BlockState wood;
@@ -73,9 +77,14 @@ public abstract class AbstractSacredSapling extends SaplingBlock {
 
     public void advanceTree(ServerLevel world, BlockPos pos, BlockState state, RandomSource random) {
         if (state.getValue(STAGE) == 0) {
+            LOGGER.info("advanceTree stage 0→1 at {}", pos);
             world.setBlock(pos, state.cycle(STAGE), 4);
         } else {
-            if (!PlatformHooks.fireTreeGrowEvent(world, random, pos)) return;
+            LOGGER.info("advanceTree stage 1→grow at {} (type={})", pos, type);
+            if (!PlatformHooks.fireTreeGrowEvent(world, random, pos)) {
+                LOGGER.info("advanceTree cancelled by event at {}", pos);
+                return;
+            }
             generateTree(world, pos, state, random);
         }
     }

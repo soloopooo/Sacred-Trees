@@ -18,7 +18,11 @@ import net.minecraft.world.level.material.Fluids;
 import java.util.ArrayList;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MassiveTreeGenerator {
+    private static final Logger DEBUG_LOGGER = LoggerFactory.getLogger("TreeGenDebug");
     // Parametric blockstates to use
     public BlockState leaves;
     /** Persistent (non-decaying) variant of leaves - prevents leaf decay */
@@ -409,16 +413,22 @@ public class MassiveTreeGenerator {
 
     private boolean validTreeLocation() {
         int newHeight = Math.min(heightLimit + basePos[1], world.getHeight()) - basePos[1];
-        if (newHeight < minHeight)
+        if (newHeight < minHeight) {
+            DEBUG_LOGGER.info("validTreeLocation FAIL at ({},{},{}): newHeight {} < minHeight {}",
+                    basePos[0], basePos[1], basePos[2], newHeight, minHeight);
             return false;
+        }
         heightLimit = newHeight;
 
         BlockPos pos = new BlockPos(basePos[0], basePos[1] - 1, basePos[2]);
         BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
 
-        if (!canSustainPlant(state, world, pos))
+        if (!canSustainPlant(state, world, pos)) {
+            DEBUG_LOGGER.info("validTreeLocation FAIL at ({},{},{}): block below is {}",
+                    basePos[0], basePos[1], basePos[2], state);
             return false;
+        }
         else {
             int[] var5 = new int[]{basePos[0], basePos[1], basePos[2]};
             int[] var6 = new int[]{basePos[0], basePos[1] + heightLimit - 1, basePos[2]};
@@ -512,8 +522,11 @@ public class MassiveTreeGenerator {
         if (minHeight == -1)
             minHeight = 80;
 
-        if (!this.validTreeLocation())
+        if (!this.validTreeLocation()) {
+            DEBUG_LOGGER.info("generate FAIL at ({},{},{}): validTreeLocation returned false",
+                    pos.getX(), pos.getY(), pos.getZ());
             return false;
+        }
         else {
             this.setup();
             this.generateLeafNodeList();

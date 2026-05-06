@@ -1,14 +1,17 @@
 package ooo.soloop.sacred_trees;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +28,9 @@ public class TreePlacementTask implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger("TreeGen");
     /** Blocks placed per tick. Lower = smoother but slower. */
     public static final int BLOCKS_PER_TICK = 500;
-    /** Chunk radius to keep force-loaded during tree generation. */
-    private static final int CHUNK_RADIUS = 3;
+    /** Blocks synced to client per tick. */
+    private static final int SYNC_BLOCKS_PER_TICK = 50;
+    private static final int CHUNK_RADIUS = 16;
 
     /** Represents a single block to place. Position stored as long (BlockPos.asLong). */
     public record PlacementEntry(long pos, BlockState state) {}
@@ -35,6 +39,11 @@ public class TreePlacementTask implements Runnable {
     private final List<PlacementEntry> placements;
     private final ChunkPos centerChunk;
     private int index;
+    private int syncChunkIdx = 0;
+    private long lastSyncTime = 0;
+    private boolean placementDone = false;
+    private final ArrayList<ChunkPos> modifiedChunks = new ArrayList<>();
+    private final java.util.HashSet<ChunkPos> uniqueChunks = new java.util.HashSet<>();
     private int blocksAdded = 0;
     private final long startTime;
     /** Optional pending tree reference for persistence. */
@@ -71,18 +80,46 @@ public class TreePlacementTask implements Runnable {
 
     @Override
     public void run() {
+        if (placementDone) {
+            // === Sync phase: one full chunk at a time, rate-limited ===
+            if (syncChunkIdx >= modifiedChunks.size()) {
+                finishGeneration();
+                return;
+            }
+            // At most 5 chunks per second (200ms each)
+            long now = System.currentTimeMillis();
+            if (now - lastSyncTime < 1) {
+                level.getServer().execute(this);
+                return;
+            }
+            lastSyncTime = now;
+
+            ChunkPos cp = modifiedChunks.get(syncChunkIdx);
+            LevelChunk chunk = (LevelChunk) level.getChunk(cp.getBlockAt(0, level.getMinY(), 0));
+            if (chunk != null) {
+                for (ServerPlayer player : level.getPlayers(p -> true)) {
+                    player.connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null));
+                }
+            }
+            syncChunkIdx++;
+            level.getServer().execute(this);
+            return;
+        }
+
+        // === Placement phase: place blocks in batches ===
         int end = Math.min(index + BLOCKS_PER_TICK, placements.size());
         for (int i = index; i < end; i++) {
             PlacementEntry entry = placements.get(i);
             BlockPos pos = BlockPos.of(entry.pos);
-            ChunkAccess chunk = level.getChunk(pos);
-            chunk.setBlockState(pos, entry.state, 0);
-            level.getChunkSource().blockChanged(pos);
+            ChunkPos cp = level.getChunk(pos).getPos();
+            if (uniqueChunks.add(cp)) {
+                modifiedChunks.add(cp);
+            }
+            level.getChunk(pos).setBlockState(pos, entry.state, 0);
             blocksAdded++;
         }
         index = end;
 
-        // Save progress to world data for crash recovery
         if (pendingTree != null) {
             pendingTree.progress = index;
             TreeGenerationSavedData.get(level).setDirty();
@@ -91,19 +128,29 @@ public class TreePlacementTask implements Runnable {
         if (index < placements.size()) {
             level.getServer().execute(this);
         } else {
-            // Complete - remove chunk ticket and clean up
-            level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, centerChunk, CHUNK_RADIUS);
-            if (pendingTree != null) {
-                TreeGenerationSavedData.get(level).removePending(pendingTree);
-            }
-            long elapsed = System.currentTimeMillis() - startTime;
-            LOGGER.info(
-                    "Tree generation completed: {} blocks placed in {}ms ({} batches of {})",
-                    blocksAdded, elapsed,
-                    (blocksAdded + BLOCKS_PER_TICK - 1) / BLOCKS_PER_TICK,
-                    BLOCKS_PER_TICK
-            );
+            // Placement done - move to sync phase
+            LOGGER.info("Tree placed {} blocks across {} chunks, syncing to client...",
+                    blocksAdded, modifiedChunks.size());
+            placementDone = true;
+            syncChunkIdx = 0;
+            level.getServer().execute(this);
         }
+    }
+
+    private void finishGeneration() {
+        for (ServerPlayer player : level.getPlayers(p -> true)) {
+            player.sendSystemMessage(Component.translatable("message.sacred_trees.done"));
+        }
+        LOGGER.info("Block sync complete");
+        level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, centerChunk, CHUNK_RADIUS);
+        if (pendingTree != null) {
+            TreeGenerationSavedData.get(level).removePending(pendingTree);
+        }
+        long elapsed = System.currentTimeMillis() - startTime;
+        LOGGER.info(
+                "Tree generation completed: {} blocks placed in {}ms",
+                blocksAdded, elapsed
+        );
     }
 
     // ========== Static helper methods ==========
@@ -120,7 +167,7 @@ public class TreePlacementTask implements Runnable {
         generator.startCollectMode();
         long seed = random.nextLong();
         boolean success = generator.generate(level, seed, pos);
-        if (!success) return -1;
+        if (!success) return Long.MIN_VALUE;
         output.addAll(generator.stopCollectMode());
         return seed;
     }
@@ -155,9 +202,25 @@ public class TreePlacementTask implements Runnable {
 
         List<PlacementEntry> placements = new ArrayList<>();
         long seed = collectPlacements(generator, level, random, pos, placements);
-        if (seed < 0 || placements.isEmpty()) return null;
+        if (seed == Long.MIN_VALUE || placements.isEmpty()) {
+            for (ServerPlayer player : level.getPlayers(p -> true)) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.sacred_trees.failed",
+                        pos.getX(), pos.getY(), pos.getZ()));
+            }
+            LOGGER.info("startPersistentGrowth FAIL at {}: collectPlacements returned {} placements (seed={})",
+                    pos, placements.size(), seed);
+            return null;
+        }
 
         // Save pending tree to world data
+        long approxSeconds = placements.size() / (BLOCKS_PER_TICK * 20L) + 5;
+        for (ServerPlayer player : level.getPlayers(p -> true)) {
+            player.sendSystemMessage(Component.translatable(
+                    "message.sacred_trees.growing",
+                    pos.getX(), pos.getY(), pos.getZ(), approxSeconds));
+        }
+
         TreeGenerationSavedData.PendingTree pending = new TreeGenerationSavedData.PendingTree(
                 pos, seed, treeType, treeKind, isFungus, 0
         );
