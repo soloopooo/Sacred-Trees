@@ -29,11 +29,9 @@ public class TreePlacementTask implements Runnable {
     public static final int BLOCKS_PER_TICK = 500;
     private static final int CHUNK_RADIUS = 16;
 
-    /** Represents a single block to place. Position stored as long (BlockPos.asLong). */
-    public record PlacementEntry(long pos, BlockState state) {}
-
     private final ServerLevel level;
-    private final List<PlacementEntry> placements;
+    /** Compact primitive-array buffer for placement data (saves ~12-20 bytes/entry vs record). */
+    private final PlacementBuffer placements;
     private final ChunkPos centerChunk;
     private int index;
     private int syncChunkIdx = 0;
@@ -50,7 +48,7 @@ public class TreePlacementTask implements Runnable {
      * Full constructor with persistence support.
      * @param pendingTree if non-null, progress is saved to world data after each batch
      */
-    public TreePlacementTask(ServerLevel level, List<PlacementEntry> placements,
+    public TreePlacementTask(ServerLevel level, PlacementBuffer placements,
                             TreeGenerationSavedData.PendingTree pendingTree) {
         this.level = level;
         this.placements = placements;
@@ -60,7 +58,7 @@ public class TreePlacementTask implements Runnable {
 
         // Determine center chunk from first placement
         if (!placements.isEmpty()) {
-            BlockPos firstPos = BlockPos.of(placements.get(0).pos);
+            BlockPos firstPos = BlockPos.of(placements.getPos(0));
             this.centerChunk = new ChunkPos(firstPos.getX() >> 4, firstPos.getZ() >> 4);
         } else {
             this.centerChunk = new ChunkPos(0, 0);
@@ -71,7 +69,7 @@ public class TreePlacementTask implements Runnable {
         level.getChunkSource().addTicketWithRadius(TicketType.FORCED, centerChunk, CHUNK_RADIUS);
     }
 
-    public TreePlacementTask(ServerLevel level, List<PlacementEntry> placements) {
+    public TreePlacementTask(ServerLevel level, PlacementBuffer placements) {
         this(level, placements, null);
     }
 
@@ -106,13 +104,12 @@ public class TreePlacementTask implements Runnable {
         // === Placement phase: place blocks in batches ===
         int end = Math.min(index + BLOCKS_PER_TICK, placements.size());
         for (int i = index; i < end; i++) {
-            PlacementEntry entry = placements.get(i);
-            BlockPos pos = BlockPos.of(entry.pos);
+            BlockPos pos = BlockPos.of(placements.getPos(i));
             ChunkPos cp = level.getChunk(pos).getPos();
             if (uniqueChunks.add(cp)) {
                 modifiedChunks.add(cp);
             }
-            level.getChunk(pos).setBlockState(pos, entry.state, 0);
+            level.getChunk(pos).setBlockState(pos, placements.getState(i), 0);
             blocksAdded++;
         }
         index = end;
@@ -125,11 +122,17 @@ public class TreePlacementTask implements Runnable {
         if (index < placements.size()) {
             level.getServer().execute(this);
         } else {
-            // Placement done - move to sync phase
+            // Placement done - free the placement buffer before sync phase
             LOGGER.info("Tree placed {} blocks across {} chunks, syncing to client...",
                     blocksAdded, modifiedChunks.size());
             placementDone = true;
             syncChunkIdx = 0;
+            // Allow GC to reclaim the placement buffer (~1-2 GB for huge trees)
+            // by replacing with an empty buffer. The original backing arrays
+            // can now be garbage collected.
+            if (placements.size() > 0) {
+                placements.clear();
+            }
             level.getServer().execute(this);
         }
     }
@@ -153,19 +156,20 @@ public class TreePlacementTask implements Runnable {
     // ========== Static helper methods ==========
 
     /**
-     * Collect all block placements from a tree generator into a list.
+     * Collect all block placements from a tree generator into a buffer.
      * Uses a fresh random seed for deterministic generation.
      */
     public static long collectPlacements(MassiveTreeGenerator generator,
                                           ServerLevel level,
                                           RandomSource random,
                                           BlockPos pos,
-                                          List<PlacementEntry> output) {
+                                          PlacementBuffer output) {
         generator.startCollectMode();
         long seed = random.nextLong();
         boolean success = generator.generate(level, seed, pos);
         if (!success) return Long.MIN_VALUE;
         output.addAll(generator.stopCollectMode());
+        output.trimToSize();
         return seed;
     }
 
@@ -176,11 +180,12 @@ public class TreePlacementTask implements Runnable {
                                                      ServerLevel level,
                                                      long seed,
                                                      BlockPos pos,
-                                                     List<PlacementEntry> output) {
+                                                     PlacementBuffer output) {
         generator.startCollectMode();
         boolean success = generator.generate(level, seed, pos);
         if (!success) return false;
         output.addAll(generator.stopCollectMode());
+        output.trimToSize();
         return true;
     }
 
@@ -197,7 +202,7 @@ public class TreePlacementTask implements Runnable {
             boolean isFungus,
             AbstractSacredSapling.Type treeType) {
 
-        List<PlacementEntry> placements = new ArrayList<>();
+        PlacementBuffer placements = new PlacementBuffer();
         long seed = collectPlacements(generator, level, random, pos, placements);
         if (seed == Long.MIN_VALUE || placements.isEmpty()) {
             for (ServerPlayer player : level.getPlayers(p -> true)) {
@@ -256,7 +261,7 @@ public class TreePlacementTask implements Runnable {
             }
 
             // Re-collect placements (deterministic - same seed = same tree)
-            List<PlacementEntry> placements = new ArrayList<>();
+            PlacementBuffer placements = new PlacementBuffer();
             boolean success = collectPlacementsWithSeed(gen, level, tree.seed, tree.pos, placements);
             if (!success || placements.isEmpty()) {
                 data.removePending(tree);

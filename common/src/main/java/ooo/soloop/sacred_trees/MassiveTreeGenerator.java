@@ -33,7 +33,7 @@ public class MassiveTreeGenerator {
 
     // Collect mode for batched placement
     private boolean collectMode = false;
-    private final java.util.ArrayList<TreePlacementTask.PlacementEntry> collectedPlacements = new java.util.ArrayList<>();
+    private PlacementBuffer collectedPlacements = new PlacementBuffer();
 
     /** Switch to collect mode: instead of placing blocks, record them for batched placement. */
     public void startCollectMode() {
@@ -41,11 +41,12 @@ public class MassiveTreeGenerator {
         this.collectedPlacements.clear();
     }
 
-    /** Stop collect mode and return the list of collected placements. */
-    public java.util.List<TreePlacementTask.PlacementEntry> stopCollectMode() {
+    /** Stop collect mode and return the buffer of collected placements. */
+    public PlacementBuffer stopCollectMode() {
         this.collectMode = false;
-        var result = java.util.List.copyOf(collectedPlacements);
-        collectedPlacements.clear();
+        PlacementBuffer result = this.collectedPlacements;
+        // Allocate a fresh buffer — the caller now owns the old one
+        this.collectedPlacements = new PlacementBuffer();
         return result;
     }
 
@@ -544,7 +545,7 @@ public class MassiveTreeGenerator {
         // In collect mode: record placement for later batched execution
         if (collectMode) {
             if (safeGrowth && !canBeReplacedByLogs(world.getBlockState(pos), world, pos)) return;
-            collectedPlacements.add(new TreePlacementTask.PlacementEntry(pos.asLong(), state));
+            collectedPlacements.add(pos.asLong(), state);
             return;
         }
 

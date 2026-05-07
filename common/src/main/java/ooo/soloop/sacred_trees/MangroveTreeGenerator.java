@@ -7,9 +7,6 @@ import net.minecraft.world.level.block.MangrovePropaguleBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +30,7 @@ public class MangroveTreeGenerator extends MassiveTreeGenerator {
     private static final int PROPAGULE_OFFSET = -1;
 
     /** Pre-computed propagule entries, built during tree generation. */
-    private final List<TreePlacementTask.PlacementEntry> pendingPropagules = new ArrayList<>();
+    private final PlacementBuffer pendingPropagules = new PlacementBuffer();
 
     public MangroveTreeGenerator(BlockState log, BlockState wood, BlockState leaves) {
         super(log, wood, leaves);
@@ -50,9 +47,9 @@ public class MangroveTreeGenerator extends MassiveTreeGenerator {
         // Pass 2: append all pending propagules into the placement list
         // in a single batch, after all tree blocks.
         int count = 0;
-        for (TreePlacementTask.PlacementEntry entry : pendingPropagules) {
-            BlockPos p = BlockPos.of(entry.pos());
-            super.setBlockAndNotifyAdequately(world, p.getX(), p.getY(), p.getZ(), entry.state());
+        for (int i = 0; i < pendingPropagules.size(); i++) {
+            BlockPos p = BlockPos.of(pendingPropagules.getPos(i));
+            super.setBlockAndNotifyAdequately(world, p.getX(), p.getY(), p.getZ(), pendingPropagules.getState(i));
             count++;
         }
         if (count > 0) {
@@ -72,8 +69,7 @@ public class MangroveTreeGenerator extends MassiveTreeGenerator {
                     .setValue(MangrovePropaguleBlock.HANGING, true)
                     .setValue(MangrovePropaguleBlock.AGE, age)
                     .setValue(BlockStateProperties.WATERLOGGED, false);
-            pendingPropagules.add(new TreePlacementTask.PlacementEntry(
-                    BlockPos.asLong(x, y + PROPAGULE_OFFSET, z), propaguleState));
+            pendingPropagules.add(BlockPos.asLong(x, y + PROPAGULE_OFFSET, z), propaguleState);
         }
         super.setBlockAndNotifyAdequately(world, x, y, z, state);
     }

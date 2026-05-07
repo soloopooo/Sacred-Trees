@@ -4,9 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +25,7 @@ public class FungusTreeGenerator extends MassiveTreeGenerator {
     private static final Logger LOGGER = LoggerFactory.getLogger("TreeGenDebug");
 
     /** Pre-computed decoration entries (lights, vines), built during tree gen. */
-    private final List<TreePlacementTask.PlacementEntry> pendingDecorations = new ArrayList<>();
+    private final PlacementBuffer pendingDecorations = new PlacementBuffer();
 
     public FungusTreeGenerator(BlockState log, BlockState wood, BlockState leaves,
                                BlockState lights, BlockState vines, BlockState vines2) {
@@ -46,9 +43,9 @@ public class FungusTreeGenerator extends MassiveTreeGenerator {
         // Pass 2: apply all recorded decorations (lights overwrite leaves,
         // vines hang below) in a single batch after all tree blocks.
         int count = 0;
-        for (TreePlacementTask.PlacementEntry entry : pendingDecorations) {
-            BlockPos p = BlockPos.of(entry.pos());
-            super.setBlockAndNotifyAdequately(world, p.getX(), p.getY(), p.getZ(), entry.state());
+        for (int i = 0; i < pendingDecorations.size(); i++) {
+            BlockPos p = BlockPos.of(pendingDecorations.getPos(i));
+            super.setBlockAndNotifyAdequately(world, p.getX(), p.getY(), p.getZ(), pendingDecorations.getState(i));
             count++;
         }
         if (count > 0) {
@@ -64,15 +61,13 @@ public class FungusTreeGenerator extends MassiveTreeGenerator {
             // the same position. We place the leaf normally in Pass 1 and
             // record the light to overwrite it in Pass 2.
             if (state == lights) {
-                pendingDecorations.add(new TreePlacementTask.PlacementEntry(
-                        BlockPos.asLong(x, y, z), state));
+                pendingDecorations.add(BlockPos.asLong(x, y, z), state);
                 super.setBlockAndNotifyAdequately(world, x, y, z, persistentLeaves);
                 return;
             }
             // Vine blocks: skip placement in Pass 1 entirely — record for Pass 2.
             if (state == vines || state == vines2) {
-                pendingDecorations.add(new TreePlacementTask.PlacementEntry(
-                        BlockPos.asLong(x, y, z), state));
+                pendingDecorations.add(BlockPos.asLong(x, y, z), state);
                 return;
             }
         }
