@@ -34,6 +34,7 @@
     "block.sacred_trees.mega_pale_oak_sapling": "宏伟苍白橡树树苗",
     "block.sacred_trees.massive_pale_oak_sapling": "附魔神圣苍白橡树树苗",
     "message.sacred_trees.growing": "§6[神圣巨树]§e 正在 §a%d, %d, %d§e 生成树木结构……",
+    "message.sacred_trees.generating_progress": "§6[神圣巨树]§e 正在生成树木结构：%d%%",
     "message.sacred_trees.start_placing": "§6[神圣巨树]§e 树木结构生成完成！在 §a%d, %d, %d§e 开始放置 %d 个方块……",
     "message.sacred_trees.progress": "§6[神圣巨树]§e 放置进度：%d / %d（%d%%）",
     "message.sacred_trees.sync_progress": "§6[神圣巨树]§e 同步进度：%d / %d 区块",

@@ -34,6 +34,7 @@
     "block.sacred_trees.mega_pale_oak_sapling": "Mega Pale Oak Sapling",
     "block.sacred_trees.massive_pale_oak_sapling": "Enchanted Sacred Pale Oak Sapling",
     "message.sacred_trees.growing": "§6[Sacred Trees]§e Generating tree structure at §a%d, %d, %d§e...",
+    "message.sacred_trees.generating_progress": "§6[Sacred Trees]§e Generating structure: %d%%",
     "message.sacred_trees.start_placing": "§6[Sacred Trees]§e Structure generated at §a%d, %d, %d§e! Placing %d blocks...",
     "message.sacred_trees.progress": "§6[Sacred Trees]§e Placing: %d / %d (%d%%)",
     "message.sacred_trees.sync_progress": "§6[Sacred Trees]§e Syncing: %d / %d chunks",

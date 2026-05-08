@@ -50,6 +50,179 @@ public class MassiveTreeGenerator {
         return result;
     }
 
+    // ========== Incremental generation ==========
+
+    private int genPhase;         // 1=leafList, 2=leaves, 3=bases, 4=trunk, 5=done
+    private int genBlockBudget;   // blocks to generate before yielding
+    /** State for incremental leaf node list generation. */
+    private int genListCurrentY, genListNodeCount, genListTopY, genListHeightOffset;
+    private int genListDensityIdx;
+    private int genLeafIdx;
+
+    /** Start incremental generation. Returns false if tree can't grow here. */
+    public boolean startIncrementalGen(Level world, long seed, BlockPos pos) {
+        this.world = world;
+        rand = RandomSource.create(seed);
+        basePos[0] = pos.getX();
+        basePos[1] = pos.getY();
+        basePos[2] = pos.getZ();
+        if (heightLimit == 0) heightLimit = heightLimitLimit;
+        if (minHeight == -1) minHeight = 80;
+
+        if (!this.validTreeLocation()) return false;
+        this.setup();
+
+        collectMode = true;
+        collectedPlacements.clear();
+        genPhase = 1;
+        genBlockBudget = 0;
+
+        // Init leaf list state
+        int var1 = density;
+        genListNodes = new int[var1 * heightLimit][4];
+        genListCurrentY = basePos[1] + heightLimit - leafDistanceLimit;
+        genListNodeCount = 1;
+        genListTopY = basePos[1] + height;
+        genListHeightOffset = genListCurrentY - basePos[1];
+        genListNodes[0][0] = basePos[0];
+        genListNodes[0][1] = genListCurrentY;
+        genListNodes[0][2] = basePos[2];
+        genListNodes[0][3] = genListTopY;
+        --genListCurrentY;
+        genListDensityIdx = 0;
+        genLeafIdx = 0;
+
+        return true;
+    }
+
+    /** Temporary storage for incremental leaf node list. */
+    private int[][] genListNodes;
+
+    /**
+     * Generate the next batch of placements.
+     * @param output buffer to append generated placements to
+     * @param maxBlocks approximate max blocks to generate this batch
+     * @return true when generation is fully complete
+     */
+    public boolean generateNextBatch(PlacementBuffer output, int maxBlocks) {
+        genBlockBudget = maxBlocks;
+
+        while (genBlockBudget > 0 && genPhase < 5) {
+            switch (genPhase) {
+                case 1 -> tickLeafNodeList();
+                case 2 -> tickLeaves();
+                case 3 -> { generateLeafNodeBases(); genPhase = 4; }
+                case 4 -> { generateTrunk(new BlockPos(basePos[0], basePos[1], basePos[2])); genPhase = 5; }
+            }
+        }
+
+        if (collectedPlacements.size() > 0) {
+            output.addAll(collectedPlacements);
+            collectedPlacements.clear();
+        }
+        return genPhase >= 5;
+    }
+
+    /**
+     * Estimated generation progress 0.0 ~ 1.0.
+     * Phase 1 (leaf list): 0% ~ 85%, Phase 2 (leaves): 85% ~ 98%, rest: ~100%.
+     */
+    public float getGenerationProgress() {
+        switch (genPhase) {
+            case 1: {
+                int totalHeightSteps = heightLimit - leafDistanceLimit;
+                if (totalHeightSteps <= 0) return 0.85f;
+                return 0.85f * (1.0f - (float) (genListHeightOffset + 1) / totalHeightSteps);
+            }
+            case 2: {
+                if (leafNodesLength <= 0) return 0.98f;
+                return 0.85f + 0.13f * (float) genLeafIdx / leafNodesLength;
+            }
+            case 3:
+            case 4:
+                return 0.99f;
+            default:
+                return 1.0f;
+        }
+    }
+
+    /** Run one tick of leaf node list generation. */
+    private void tickLeafNodeList() {
+        int[] basePos = this.basePos;
+        int densityCount = density;
+        int[][] nodes = genListNodes;
+        int currentY = genListCurrentY;
+        int nodeCount = genListNodeCount;
+        int topY = genListTopY;
+        int heightOffset = genListHeightOffset;
+        int densityIdx = genListDensityIdx;
+
+        while (heightOffset >= 0 && genBlockBudget > 0) {
+            float layerRadius = this.layerSize(heightOffset);
+            if (layerRadius > 0.0F) {
+                for (float halfOffset = 0.5f; densityIdx < densityCount && genBlockBudget > 0; ++densityIdx) {
+                    float branchRadius = scaleWidth * layerRadius * (rand.nextFloat() + 0.328f);
+                    float branchAngle = rand.nextFloat() * 2.0f * PI;
+                    int posX = Mth.floor(branchRadius * Math.sin(branchAngle) + basePos[0] + halfOffset);
+                    int posZ = Mth.floor(branchRadius * Math.cos(branchAngle) + basePos[2] + halfOffset);
+                    int[] leafPos = new int[]{posX, currentY, posZ};
+                    int[] leafTop = new int[]{posX, currentY + leafDistanceLimit, posZ};
+                    if (this.checkBlockLine(leafPos, leafTop) == -1) {
+                        int t;
+                        double distance = Math.sqrt((t = basePos[0] - leafPos[0]) * t + (t = basePos[2] - leafPos[2]) * t);
+                        int yOffset = (int) (distance * branchSlope);
+                        int[] branchBase = new int[]{basePos[0], Math.min(leafPos[1] - yOffset, topY), basePos[2]};
+                        if (this.checkBlockLine(branchBase, leafPos) == -1) {
+                            nodes[nodeCount][0] = posX;
+                            nodes[nodeCount][1] = currentY;
+                            nodes[nodeCount][2] = posZ;
+                            nodes[nodeCount][3] = branchBase[1];
+                            ++nodeCount;
+                        }
+                    }
+                    genBlockBudget--;
+                }
+            }
+            // Advance height only if density loop completed (ran all iters, or layerRadius <= 0)
+            // If budget exhausted mid-density, break without advancing height
+            if (densityIdx >= densityCount || genBlockBudget > 0) {
+                densityIdx = 0;
+                --currentY;
+                --heightOffset;
+            } else {
+                break; // Budget exhausted mid-density, yield now
+            }
+        }
+        genListCurrentY = currentY; genListNodeCount = nodeCount; genListTopY = topY; genListHeightOffset = heightOffset;
+        genListDensityIdx = densityIdx;
+        if (heightOffset < 0) {
+            leafNodes = nodes; leafNodesLength = nodeCount;
+            genLeafIdx = 0;
+            genPhase = 2;
+        }
+    }
+
+    /** Run one tick of leaf generation. */
+    private void tickLeaves() {
+        int[][] leafNodes = this.leafNodes;
+        for (; genLeafIdx < leafNodesLength && genBlockBudget > 0; genLeafIdx++) {
+            int[] n = leafNodes[genLeafIdx];
+            int x = n[0], yO = n[1], z = n[2];
+            int blocksBefore = collectedPlacements.size();
+            // Place wood core at leaf node origin
+            setBlockAndNotifyAdequately(world, x, yO, z, wood);
+            // Generate leaf layers (leafDistanceLimit layers upward)
+            int leafY = yO;
+            for (int y = 0; y < leafDistanceLimit; y++) {
+                int size = (y != 0) && y != leafDistanceLimit - 1 ? 3 : 2;
+                genLeafLayer(x, leafY++, z, size);
+            }
+            // Consume budget by actual blocks added to buffer
+            genBlockBudget -= (collectedPlacements.size() - blocksBefore);
+        }
+        if (genLeafIdx >= leafNodesLength) genPhase = 3;
+    }
+
     private static final byte[] otherCoordPairs = new byte[]{(byte) 2, (byte) 0, (byte) 0, (byte) 1, (byte) 2, (byte) 1};
     private static final float PI = (float) Math.PI;
 
@@ -109,74 +282,74 @@ public class MassiveTreeGenerator {
         density = Math.max(1, (int) (1.382D + Math.pow(branchDensity * heightLimit / 13.0D, 2.0D)));
     }
 
-    private float layerSize(int par1) {
-        if (par1 < leafBases)
+    private float layerSize(int layerHeight) {
+        if (layerHeight < leafBases)
             return -1.618F;
         else {
-            float var2 = heightLimit * 0.5F;
-            float var3 = heightLimit * 0.5F - par1;
-            float var4;
-            if (var3 == 0.0F) {
-                var4 = var2;
-            } else if (Math.abs(var3) >= var2) {
+            float halfHeight = heightLimit * 0.5F;
+            float heightDiff = heightLimit * 0.5F - layerHeight;
+            float layerWidth;
+            if (heightDiff == 0.0F) {
+                layerWidth = halfHeight;
+            } else if (Math.abs(heightDiff) >= halfHeight) {
                 return 0.0F;
             } else {
-                var4 = (float) Math.sqrt(var2 * var2 - var3 * var3);
+                layerWidth = (float) Math.sqrt(halfHeight * halfHeight - heightDiff * heightDiff);
             }
-            var4 *= 0.5F;
-            return var4;
+            layerWidth *= 0.5F;
+            return layerWidth;
         }
     }
 
     private void generateLeafNodeList() {
-        int var1 = density;
+        int densityCount = density;
         int[] basePos = this.basePos;
-        int[][] var2 = new int[var1 * heightLimit][4];
-        int var3 = basePos[1] + heightLimit - leafDistanceLimit;
-        int var4 = 1;
-        int var5 = basePos[1] + height;
-        int var6 = var3 - basePos[1];
-        var2[0][0] = basePos[0];
-        var2[0][1] = var3;
-        var2[0][2] = basePos[2];
-        var2[0][3] = var5;
-        --var3;
+        int[][] nodes = new int[densityCount * heightLimit][4];
+        int currentY = basePos[1] + heightLimit - leafDistanceLimit;
+        int nodeCount = 1;
+        int topY = basePos[1] + height;
+        int heightOffset = currentY - basePos[1];
+        nodes[0][0] = basePos[0];
+        nodes[0][1] = currentY;
+        nodes[0][2] = basePos[2];
+        nodes[0][3] = topY;
+        --currentY;
 
-        while (var6 >= 0) {
-            int var7 = 0;
-            float var8 = this.layerSize(var6);
-            if (var8 > 0.0F) {
-                for (float var9 = 0.5f; var7 < var1; ++var7) {
-                    float var11 = scaleWidth * var8 * (rand.nextFloat() + 0.328f);
-                    float var13 = rand.nextFloat() * 2.0f * PI;
-                    int var15 = Mth.floor(var11 * Math.sin(var13) + basePos[0] + var9);
-                    int var16 = Mth.floor(var11 * Math.cos(var13) + basePos[2] + var9);
-                    int[] var17 = new int[]{var15, var3, var16};
-                    int[] var18 = new int[]{var15, var3 + leafDistanceLimit, var16};
+        while (heightOffset >= 0) {
+            int densityIdx = 0;
+            float layerRadius = this.layerSize(heightOffset);
+            if (layerRadius > 0.0F) {
+                for (float halfOffset = 0.5f; densityIdx < densityCount; ++densityIdx) {
+                    float branchRadius = scaleWidth * layerRadius * (rand.nextFloat() + 0.328f);
+                    float branchAngle = rand.nextFloat() * 2.0f * PI;
+                    int posX = Mth.floor(branchRadius * Math.sin(branchAngle) + basePos[0] + halfOffset);
+                    int posZ = Mth.floor(branchRadius * Math.cos(branchAngle) + basePos[2] + halfOffset);
+                    int[] leafPos = new int[]{posX, currentY, posZ};
+                    int[] leafTop = new int[]{posX, currentY + leafDistanceLimit, posZ};
 
-                    if (this.checkBlockLine(var17, var18) == -1) {
+                    if (this.checkBlockLine(leafPos, leafTop) == -1) {
                         int t;
-                        double var20 = Math.sqrt(
-                                (t = basePos[0] - var17[0]) * t +
-                                (t = basePos[2] - var17[2]) * t);
-                        int var22 = (int) (var20 * branchSlope);
-                        int[] var19 = new int[]{basePos[0], Math.min(var17[1] - var22, var5), basePos[2]};
+                        double distance = Math.sqrt(
+                                (t = basePos[0] - leafPos[0]) * t +
+                                (t = basePos[2] - leafPos[2]) * t);
+                        int yOffset = (int) (distance * branchSlope);
+                        int[] branchBase = new int[]{basePos[0], Math.min(leafPos[1] - yOffset, topY), basePos[2]};
 
-                        if (this.checkBlockLine(var19, var17) == -1) {
-                            var2[var4][0] = var15;
-                            var2[var4][1] = var3;
-                            var2[var4][2] = var16;
-                            var2[var4][3] = var19[1];
-                            ++var4;
+                        if (this.checkBlockLine(branchBase, leafPos) == -1) {
+                            nodes[nodeCount][0] = posX;
+                            nodes[nodeCount][1] = currentY;
+                            nodes[nodeCount][2] = posZ;
+                            nodes[nodeCount][3] = branchBase[1];
+                            ++nodeCount;
                         }
                     }
                 }
             }
-            --var3;
-            --var6;
+            --currentY;
+            --heightOffset;
         }
-        leafNodes = var2;
-        leafNodesLength = var4;
+        leafNodes = nodes;
+        leafNodesLength = nodeCount;
     }
 
     private void genVines(Level world, int x, int y, int z, int length) {
@@ -193,22 +366,22 @@ public class MassiveTreeGenerator {
     }
 
     private void genLeafLayer(int x, int y, int z, final int size) {
-        int t;
-        final int X = x;
-        final int Z = z;
+        int sign;
+        final int originX = x;
+        final int originZ = z;
         final float maxDistSq = size * size;
 
-        for (int xMod = -size; xMod <= size; ++xMod) {
-            x = X + xMod;
-            final int xDistSq = xMod * xMod + (((t = xMod >> 31) ^ xMod) - t);
-            for (int zMod = 0; zMod <= size; ) {
-                final float distSq = xDistSq + zMod * zMod + zMod + 0.5f;
+        for (int dx = -size; dx <= size; ++dx) {
+            x = originX + dx;
+            final int dxSq = dx * dx + (((sign = dx >> 31) ^ dx) - sign);
+            for (int dz = 0; dz <= size; ) {
+                final float distSq = dxSq + dz * dz + dz + 0.5f;
                 if (distSq > maxDistSq) {
                     break;
                 } else {
-                    t = -1;
+                    sign = -1;
                     do {
-                        z = Z + zMod * t;
+                        z = originZ + dz * sign;
                         BlockPos placementPos = new BlockPos(x, y, z);
                         BlockState state = world.getBlockState(placementPos);
                         Block block = state.getBlock();
@@ -227,10 +400,10 @@ public class MassiveTreeGenerator {
                                 block != Blocks.BEDROCK) {
                             this.setBlockAndNotifyAdequately(world, x, y, z, blockToSet);
                         }
-                        if (t == 1) break;
-                        t = 1;
+                        if (sign == 1) break;
+                        sign = 1;
                     } while (true);
-                    ++zMod;
+                    ++dz;
                 }
             }
         }

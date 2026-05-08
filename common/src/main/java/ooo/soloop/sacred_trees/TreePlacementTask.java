@@ -53,7 +53,7 @@ public class TreePlacementTask implements Runnable {
     private int syncChunkIdx = 0;
     private boolean placementDone = false;
     private final ArrayList<ChunkPos> modifiedChunks = new ArrayList<>();
-    private final java.util.HashSet<ChunkPos> uniqueChunks = new java.util.HashSet<>();
+    private final java.util.HashMap<ChunkPos, Integer> chunkMinY = new java.util.HashMap<>();
     private int blocksAdded = 0;
     private final long startTime;
     /** Optional pending tree reference for persistence. */
@@ -101,11 +101,36 @@ public class TreePlacementTask implements Runnable {
             return;
         }
 
-        // Phase 0: Generate placements if not yet done (deferred from startPersistentGrowth)
+        // Phase 0: Generate placements incrementally (deferred from startPersistentGrowth)
         if (task.generator != null) {
-            task.generateTree();
-            task.generator = null; // Done generating
-            // Fall through to place the first batch in the same tick
+            boolean genDone = task.generator.generateNextBatch(task.placements, blocksPerTick());
+            if (!genDone) {
+                // Show generation progress via action bar
+                progressReportTicker++;
+                if (progressReportTicker % PROGRESS_INTERVAL_TICKS == 0) {
+                    int pct = (int) (task.generator.getGenerationProgress() * 100);
+                    Component msg = Component.translatable(
+                            "message.sacred_trees.generating_progress", pct);
+                    for (ServerPlayer player : task.level.getPlayers(p -> true)) {
+                        player.sendSystemMessage(msg, true);
+                    }
+                }
+                // Still generating - re-add to queue, placement starts next tick after gen
+                PENDING_TASKS.add(task);
+                return;
+            }
+            // Generation complete!
+            task.generator = null;
+            task.placements.trimToSize();
+            long blockCount = task.placements.size();
+            LOGGER.info("Tree structure generated: {} blocks", blockCount);
+            for (ServerPlayer player : task.level.getPlayers(p -> true)) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.sacred_trees.start_placing",
+                        task.pendingTree.pos.getX(), task.pendingTree.pos.getY(), task.pendingTree.pos.getZ(),
+                        blockCount));
+            }
+            // Fall through to place the first batch this tick
         }
 
         boolean wasPlacement = !task.placementDone;
@@ -155,37 +180,6 @@ public class TreePlacementTask implements Runnable {
     }
 
     /**
-     * Generate tree placements (called from onServerTick on first batch).
-     * Runs collectPlacements with the stored generator, then populates the buffer.
-     */
-    private void generateTree() {
-        LOGGER.info("Generating tree structure at {}...", pendingTree.pos);
-        boolean success = collectPlacementsWithSeed(
-                generator, level, pendingTree.seed, pendingTree.pos, placements);
-        if (!success || placements.isEmpty()) {
-            LOGGER.info("Tree generation FAIL at {}: no placements", pendingTree.pos);
-            for (ServerPlayer player : level.getPlayers(p -> true)) {
-                player.sendSystemMessage(Component.translatable(
-                        "message.sacred_trees.failed",
-                        pendingTree.pos.getX(), pendingTree.pos.getY(), pendingTree.pos.getZ()));
-            }
-            // Mark done so cleanup happens
-            placementDone = true;
-            modifiedChunks.clear();
-            return;
-        }
-        placements.trimToSize();
-        long blockCount = placements.size();
-        LOGGER.info("Tree structure generated: {} blocks", blockCount);
-        for (ServerPlayer player : level.getPlayers(p -> true)) {
-            player.sendSystemMessage(Component.translatable(
-                    "message.sacred_trees.start_placing",
-                    pendingTree.pos.getX(), pendingTree.pos.getY(), pendingTree.pos.getZ(),
-                    blockCount));
-        }
-    }
-
-    /**
      * First batch runs immediately via {@link #run()} (called from initial {@code execute()}).
      * Remaining batches are scheduled via the pending queue and processed by {@link #onServerTick()}.
      */
@@ -203,8 +197,12 @@ public class TreePlacementTask implements Runnable {
         for (int i = index; i < end; i++) {
             BlockPos pos = BlockPos.of(placements.getPos(i));
             ChunkPos cp = level.getChunk(pos).getPos();
-            if (uniqueChunks.add(cp)) {
+            Integer prevMinY = chunkMinY.get(cp);
+            if (prevMinY == null) {
+                chunkMinY.put(cp, pos.getY());
                 modifiedChunks.add(cp);
+            } else if (pos.getY() < prevMinY) {
+                chunkMinY.put(cp, pos.getY());
             }
             level.getChunk(pos).setBlockState(pos, placements.getState(i), 0);
             blocksAdded++;
@@ -222,6 +220,11 @@ public class TreePlacementTask implements Runnable {
                     blocksAdded, modifiedChunks.size());
             placementDone = true;
             syncChunkIdx = 0;
+            // Sort chunks by lowest block Y then by X, so ground-level chunks sync first
+            modifiedChunks.sort((a, b) -> {
+                int cmp = Integer.compare(chunkMinY.getOrDefault(a, 0), chunkMinY.getOrDefault(b, 0));
+                return cmp != 0 ? cmp : Integer.compare(a.x(), b.x());
+            });
             // Allow GC to reclaim the placement buffer (~1-2 GB for huge trees)
             if (placements.size() > 0) {
                 placements.clear();
@@ -318,6 +321,15 @@ public class TreePlacementTask implements Runnable {
             boolean isFungus,
             AbstractSacredSapling.Type treeType) {
 
+        // Check if a tree is already growing at this position (prevent duplicate bonemeal)
+        TreeGenerationSavedData savedData = TreeGenerationSavedData.get(level);
+        for (TreeGenerationSavedData.PendingTree existing : savedData.getPendingTrees()) {
+            if (existing.pos.equals(pos)) {
+                LOGGER.info("startPersistentGrowth SKIP at {}: already growing", pos);
+                return existing; // Already growing here
+            }
+        }
+
         // Send immediate feedback before any heavy work
         for (ServerPlayer player : level.getPlayers(p -> true)) {
             player.sendSystemMessage(Component.translatable(
@@ -330,10 +342,23 @@ public class TreePlacementTask implements Runnable {
         TreeGenerationSavedData.PendingTree pending = new TreeGenerationSavedData.PendingTree(
                 pos, seed, treeType, treeKind, isFungus, 0
         );
-        TreeGenerationSavedData.get(level).addPending(pending);
+        savedData.addPending(pending);
+
+        // Initialize incremental generation
+        if (!generator.startIncrementalGen(level, seed, pos)) {
+            // validTreeLocation failed
+            savedData.removePending(pending);
+            for (ServerPlayer player : level.getPlayers(p -> true)) {
+                player.sendSystemMessage(Component.translatable(
+                        "message.sacred_trees.failed",
+                        pos.getX(), pos.getY(), pos.getZ()));
+            }
+            LOGGER.info("startPersistentGrowth FAIL at {}: validTreeLocation failed", pos);
+            return null;
+        }
 
         // Create task with empty buffer + generator reference
-        // Generation will happen in onServerTick() on the next tick
+        // Generation will happen via generateNextBatch() in onServerTick()
         PlacementBuffer placements = new PlacementBuffer();
         TreePlacementTask task = new TreePlacementTask(level, placements, pending);
         task.generator = generator;
