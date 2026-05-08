@@ -33,7 +33,10 @@
     "block.sacred_trees.sacred_pale_oak_sapling": "神圣苍白橡树树苗",
     "block.sacred_trees.mega_pale_oak_sapling": "宏伟苍白橡树树苗",
     "block.sacred_trees.massive_pale_oak_sapling": "附魔神圣苍白橡树树苗",
-    "message.sacred_trees.growing": "§6[神圣巨树]§e 树木正在 §a%d, %d, %d§e 生长（%d 个方块），服务器可能稍有卡顿……",
+    "message.sacred_trees.growing": "§6[神圣巨树]§e 正在 §a%d, %d, %d§e 生成树木结构……",
+    "message.sacred_trees.start_placing": "§6[神圣巨树]§e 树木结构生成完成！在 §a%d, %d, %d§e 开始放置 %d 个方块……",
+    "message.sacred_trees.progress": "§6[神圣巨树]§e 放置进度：%d / %d（%d%%）",
+    "message.sacred_trees.sync_progress": "§6[神圣巨树]§e 同步进度：%d / %d 区块",
     "message.sacred_trees.done": "§6[神圣巨树]§a 树木生长完成！",
     "message.sacred_trees.failed": "§c树木在 §4%d, %d, %d§c 生长失败（空间不足）"
 }

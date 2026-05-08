@@ -6,6 +6,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +24,17 @@ public class SacredTreesMod {
         // Setup common
         modEventBus.addListener(this::commonSetup);
 
+        // Load config
+        SacredTreesConfig.load(net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get());
+
         // Register platform hooks
         NeoPlatformHooksImpl.init();
 
         // Register world load event for resuming tree generation
         NeoForge.EVENT_BUS.addListener(this::onWorldLoad);
+
+        // Register per-tick tree placement processing
+        NeoForge.EVENT_BUS.addListener(this::onServerTickPre);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
@@ -38,5 +45,9 @@ public class SacredTreesMod {
         if (event.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             TreePlacementTask.resumePending(serverLevel);
         }
+    }
+
+    private void onServerTickPre(ServerTickEvent.Pre event) {
+        TreePlacementTask.onServerTick();
     }
 }
