@@ -65,6 +65,12 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
+tasks.named('runClient', JavaExec) {
+    if (project.hasProperty('profilerAgent')) {
+        jvmArgs("-agentpath:${project.profilerAgent}=start,event=wall,file=${project.buildDir}/profile.html")
+    }
+}
+
 // Configure maven publication
 publishing {
     publications {

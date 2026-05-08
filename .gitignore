@@ -25,3 +25,7 @@ run
 forge*changelog.txt
 
 .memory
+
+# OpenCode
+.opencode/
+AGENTS.md

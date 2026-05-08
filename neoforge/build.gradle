@@ -29,6 +29,9 @@ neoForge {
         client {
             client()
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            if (project.hasProperty('profilerAgent')) {
+                jvmArgument("-agentpath:${project.profilerAgent}=start,event=wall,file=${project.projectDir}/build/profile.html")
+            }
         }
 
         server {

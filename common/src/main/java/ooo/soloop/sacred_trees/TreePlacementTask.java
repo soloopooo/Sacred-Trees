@@ -51,7 +51,11 @@ public class TreePlacementTask implements Runnable {
     private int index;
     private MassiveTreeGenerator generator;
     private int syncChunkIdx = 0;
-    private boolean placementDone = false;
+    /** Actual FORCED ticket radius used (may grow beyond chunkRadius() to cover all modified chunks). */
+    private int effectiveChunkRadius;
+    /** 0=placement, 1=lighting, 2=sync. */
+    private int phase = 0;
+    private final java.util.concurrent.atomic.AtomicInteger pendingLightCount = new java.util.concurrent.atomic.AtomicInteger(0);
     private final ArrayList<ChunkPos> modifiedChunks = new ArrayList<>();
     private final java.util.HashMap<ChunkPos, Integer> chunkMinY = new java.util.HashMap<>();
     private int blocksAdded = 0;
@@ -84,6 +88,7 @@ public class TreePlacementTask implements Runnable {
         // Keep chunks force-loaded during tree generation to prevent
         // the sapling from disappearing when the player walks away.
         level.getChunkSource().addTicketWithRadius(TicketType.FORCED, centerChunk, chunkRadius());
+        this.effectiveChunkRadius = chunkRadius();
     }
 
     public TreePlacementTask(ServerLevel level, PlacementBuffer placements) {
@@ -133,18 +138,20 @@ public class TreePlacementTask implements Runnable {
             // Fall through to place the first batch this tick
         }
 
-        boolean wasPlacement = !task.placementDone;
+        boolean wasPlacement = task.phase == 0;
 
-        if (task.placementDone) {
+        if (task.phase == 2) {
             task.processSyncBatch();
-        } else {
+        } else if (task.phase == 0) {
             task.processPlacementBatch();
+        } else {
+            task.processLightingBatch();
         }
 
         // Progress report via action bar (~1 report/sec)
         progressReportTicker++;
         if (progressReportTicker % PROGRESS_INTERVAL_TICKS == 0) {
-            if (wasPlacement) {
+            if (task.phase == 0) {
                 // Show placement progress
                 int totalBlocks = task.placements.size();
                 if (totalBlocks <= 0) {
@@ -155,6 +162,15 @@ public class TreePlacementTask implements Runnable {
                 Component msg = Component.translatable(
                         "message.sacred_trees.progress",
                         task.index, totalBlocks, pct
+                );
+                for (ServerPlayer player : task.level.getPlayers(p -> true)) {
+                    player.sendSystemMessage(msg, true);
+                }
+            } else if (task.phase == 1) {
+                int remaining = task.pendingLightCount.get();
+                Component msg = Component.translatable(
+                        "message.sacred_trees.lighting_progress",
+                        task.modifiedChunks.size() - remaining, task.modifiedChunks.size()
                 );
                 for (ServerPlayer player : task.level.getPlayers(p -> true)) {
                     player.sendSystemMessage(msg, true);
@@ -191,20 +207,31 @@ public class TreePlacementTask implements Runnable {
         }
     }
 
-    /** Process one batch of blocksPerTick() blocks. */
+    /** Process one batch of blocksPerTick() blocks using direct section access (no light checks). */
     private void processPlacementBatch() {
         int end = Math.min(index + blocksPerTick(), placements.size());
         for (int i = index; i < end; i++) {
             BlockPos pos = BlockPos.of(placements.getPos(i));
-            ChunkPos cp = level.getChunk(pos).getPos();
+            LevelChunk chunk = (LevelChunk) level.getChunk(pos);
+            ChunkPos cp = chunk.getPos();
             Integer prevMinY = chunkMinY.get(cp);
             if (prevMinY == null) {
                 chunkMinY.put(cp, pos.getY());
                 modifiedChunks.add(cp);
+                // Extend FORCED ticket radius to keep this chunk loaded.
+                // Without this, chunks outside the initial radius get unloaded
+                // when the player teleports away, causing blocking disk I/O.
+                int dist = Math.max(Math.abs(cp.x() - centerChunk.x()), Math.abs(cp.z() - centerChunk.z()));
+                if (dist > effectiveChunkRadius) {
+                    level.getChunkSource().addTicketWithRadius(TicketType.FORCED, centerChunk, dist);
+                    effectiveChunkRadius = dist;
+                }
             } else if (pos.getY() < prevMinY) {
                 chunkMinY.put(cp, pos.getY());
             }
-            level.getChunk(pos).setBlockState(pos, placements.getState(i), 0);
+            chunk.getSection(chunk.getSectionIndex(pos.getY())).setBlockState(
+                    pos.getX() & 15, pos.getY() & 15, pos.getZ() & 15, placements.getState(i));
+            chunk.markUnsaved();
             blocksAdded++;
         }
         index = end;
@@ -215,24 +242,43 @@ public class TreePlacementTask implements Runnable {
         }
 
         if (index >= placements.size()) {
-            // Placement done - free the placement buffer before sync phase
-            LOGGER.info("Tree placed {} blocks across {} chunks, syncing to client...",
+            // Placement done - submit per-chunk light tasks (avoids flooding the dispatcher
+            // with 100k individual checkBlock calls per tick during placement).
+            LOGGER.info("Tree placed {} blocks across {} chunks, lighting...",
                     blocksAdded, modifiedChunks.size());
-            placementDone = true;
-            syncChunkIdx = 0;
-            // Sort chunks by lowest block Y then by X, so ground-level chunks sync first
+            phase = 1;
             modifiedChunks.sort((a, b) -> {
                 int cmp = Integer.compare(chunkMinY.getOrDefault(a, 0), chunkMinY.getOrDefault(b, 0));
                 return cmp != 0 ? cmp : Integer.compare(a.x(), b.x());
             });
-            // Allow GC to reclaim the placement buffer (~1-2 GB for huge trees)
             if (placements.size() > 0) {
                 placements.clear();
+            }
+            var lightEngine = level.getChunkSource().getLightEngine();
+            pendingLightCount.set(modifiedChunks.size());
+            for (ChunkPos cp : modifiedChunks) {
+                LevelChunk chunk = (LevelChunk) level.getChunk(cp.getBlockAt(0, level.getMinY(), 0));
+                if (chunk != null) {
+                    ((net.minecraft.server.level.ThreadedLevelLightEngine) lightEngine)
+                            .lightChunk(chunk, false)
+                            .thenRun(() -> pendingLightCount.decrementAndGet());
+                } else {
+                    pendingLightCount.decrementAndGet();
+                }
             }
         }
     }
 
-    /** Sync up to {@link #chunksPerTick()} chunks to all online players. Called once per tick. */
+    /** Wait for chunk light tasks to complete. Once all done, transitions to sync phase. */
+    private void processLightingBatch() {
+        if (pendingLightCount.get() <= 0) {
+            phase = 2;
+            syncChunkIdx = 0;
+            LOGGER.info("Lighting complete, syncing {} chunks...", modifiedChunks.size());
+        }
+    }
+
+    /** Sync up to {@link #chunksPerTick()} chunks to players who can see them. Called once per tick. */
     private void processSyncBatch() {
         for (int i = 0; i < chunksPerTick(); i++) {
             if (syncChunkIdx >= modifiedChunks.size()) {
@@ -242,8 +288,9 @@ public class TreePlacementTask implements Runnable {
             ChunkPos cp = modifiedChunks.get(syncChunkIdx);
             LevelChunk chunk = (LevelChunk) level.getChunk(cp.getBlockAt(0, level.getMinY(), 0));
             if (chunk != null) {
-                for (ServerPlayer player : level.getPlayers(p -> true)) {
-                    player.connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null));
+                var packet = new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null);
+                for (ServerPlayer player : level.getPlayers(p -> p.getChunkTrackingView().contains(cp.x(), cp.z()))) {
+                    player.connection.send(packet);
                 }
             }
             syncChunkIdx++;
@@ -251,9 +298,10 @@ public class TreePlacementTask implements Runnable {
         // Re-add to queue handled by onServerTick() if more chunks remain
     }
 
-    /** Returns true when both placement and sync are complete. */
+    /** Returns true when placement, lighting, and sync are all complete. */
     private boolean isDone() {
-        return placementDone && syncChunkIdx >= modifiedChunks.size();
+        if (phase < 2) return false;
+        return syncChunkIdx >= modifiedChunks.size();
     }
 
     private void finishGeneration() {
@@ -261,7 +309,7 @@ public class TreePlacementTask implements Runnable {
             player.sendSystemMessage(Component.translatable("message.sacred_trees.done"));
         }
         LOGGER.info("Block sync complete");
-        level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, centerChunk, chunkRadius());
+        level.getChunkSource().removeTicketWithRadius(TicketType.FORCED, centerChunk, effectiveChunkRadius);
         if (pendingTree != null) {
             TreeGenerationSavedData.get(level).removePending(pendingTree);
         }

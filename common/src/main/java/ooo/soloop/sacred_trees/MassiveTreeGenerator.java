@@ -78,8 +78,8 @@ public class MassiveTreeGenerator {
         genBlockBudget = 0;
 
         // Init leaf list state
-        int var1 = density;
-        genListNodes = new int[var1 * heightLimit][4];
+        int densityCount = density;
+        genListNodes = new int[densityCount * heightLimit][4];
         genListCurrentY = basePos[1] + heightLimit - leafDistanceLimit;
         genListNodeCount = 1;
         genListTopY = basePos[1] + height;
@@ -160,7 +160,8 @@ public class MassiveTreeGenerator {
         while (heightOffset >= 0 && genBlockBudget > 0) {
             float layerRadius = this.layerSize(heightOffset);
             if (layerRadius > 0.0F) {
-                for (float halfOffset = 0.5f; densityIdx < densityCount && genBlockBudget > 0; ++densityIdx) {
+                float halfOffset = 0.5f;
+                for (; densityIdx < densityCount && genBlockBudget > 0; ++densityIdx) {
                     float branchRadius = scaleWidth * layerRadius * (rand.nextFloat() + 0.328f);
                     float branchAngle = rand.nextFloat() * 2.0f * PI;
                     int posX = Mth.floor(branchRadius * Math.sin(branchAngle) + basePos[0] + halfOffset);
@@ -206,13 +207,11 @@ public class MassiveTreeGenerator {
     private void tickLeaves() {
         int[][] leafNodes = this.leafNodes;
         for (; genLeafIdx < leafNodesLength && genBlockBudget > 0; genLeafIdx++) {
-            int[] n = leafNodes[genLeafIdx];
-            int x = n[0], yO = n[1], z = n[2];
+            int[] node = leafNodes[genLeafIdx];
+            int x = node[0], nodeY = node[1], z = node[2];
             int blocksBefore = collectedPlacements.size();
-            // Place wood core at leaf node origin
-            setBlockAndNotifyAdequately(world, x, yO, z, wood);
-            // Generate leaf layers (leafDistanceLimit layers upward)
-            int leafY = yO;
+            setBlockAndNotifyAdequately(world, x, nodeY, z, wood);
+            int leafY = nodeY;
             for (int y = 0; y < leafDistanceLimit; y++) {
                 int size = (y != 0) && y != leafDistanceLimit - 1 ? 3 : 2;
                 genLeafLayer(x, leafY++, z, size);
@@ -319,7 +318,8 @@ public class MassiveTreeGenerator {
             int densityIdx = 0;
             float layerRadius = this.layerSize(heightOffset);
             if (layerRadius > 0.0F) {
-                for (float halfOffset = 0.5f; densityIdx < densityCount; ++densityIdx) {
+                float halfOffset = 0.5f;
+                for (; densityIdx < densityCount; ++densityIdx) {
                     float branchRadius = scaleWidth * layerRadius * (rand.nextFloat() + 0.328f);
                     float branchAngle = rand.nextFloat() * 2.0f * PI;
                     int posX = Mth.floor(branchRadius * Math.sin(branchAngle) + basePos[0] + halfOffset);
@@ -430,60 +430,49 @@ public class MassiveTreeGenerator {
 
     private void generateLeaves() {
         int[][] leafNodes = this.leafNodes;
-        for (int i = 0, e = leafNodesLength; i < e; ++i) {
-            int[] n = leafNodes[i];
-            int x = n[0], yO = n[1], z = n[2];
-            // Place a wood block at the leaf node core to stabilize leaves against decay
-            this.setBlockAndNotifyAdequately(world, x, yO, z, wood);
-            int y = 0;
-            for (int var5 = y + leafDistanceLimit; y < var5; ++y) {
-                int size = (y != 0) && y != leafDistanceLimit - 1 ? 3 : 2;
-                genLeafLayer(x, yO++, z, size);
+        for (int i = 0, len = leafNodesLength; i < len; ++i) {
+            int[] node = leafNodes[i];
+            int x = node[0], leafY = node[1], z = node[2];
+            this.setBlockAndNotifyAdequately(world, x, leafY, z, wood);
+            for (int layer = 0; layer < leafDistanceLimit; ++layer) {
+                int size = (layer != 0) && layer != leafDistanceLimit - 1 ? 3 : 2;
+                genLeafLayer(x, leafY++, z, size);
             }
         }
     }
 
     private int[] placeScratch = new int[3];
 
-    private void placeBlockLine(int[] par1, int[] par2, BlockState logBS, BlockState woodBS) {
-        int t;
-        int[] var4 = placeScratch;
-        byte var6 = 0;
+    private void placeBlockLine(int[] start, int[] end, BlockState logState, BlockState woodState) {
+        int[] deltas = placeScratch;
+        byte mainAxis = 0;
         for (byte i = 0; i < 3; ++i) {
-            int a = par2[i] - par1[i], b = ((t = a >> 31) ^ a) - t;
-            var4[i] = a;
-            if (b > ((a = var4[var6]) ^ (t = a >> 31)) - t)
-                var6 = i;
+            int delta = end[i] - start[i];
+            int absDelta = Math.abs(delta);
+            deltas[i] = delta;
+            if (absDelta > Math.abs(deltas[mainAxis]))
+                mainAxis = i;
         }
-        if (var4[var6] != 0) {
-            byte var7 = otherCoordPairs[var6];
-            byte var8 = otherCoordPairs[var6 + 3];
-            byte var9;
-            if (var4[var6] > 0) {
-                var9 = 1;
-            } else {
-                var9 = -1;
-            }
-            float var10 = (float) var4[var7] / (float) var4[var6];
-            float var12 = (float) var4[var8] / (float) var4[var6];
-            int var16 = var4[var6] + var9;
-            int[] var14 = var4;
-            for (int var15 = 0; var15 != var16; var15 += var9) {
-                var14[var6] = Mth.floor(par1[var6] + var15 + 0.5F);
-                var14[var7] = Mth.floor(par1[var7] + var15 * var10 + 0.5F);
-                var14[var8] = Mth.floor(par1[var8] + var15 * var12 + 0.5F);
-                BlockState state2 = logBS;
-                int var18 = var14[0] - par1[0];
-                var18 = ((t = var18 >> 31) ^ var18) - t;
-                int var19 = var14[2] - par1[2];
-                var19 = ((t = var19 >> 31) ^ var19) - t;
-                int var20 = Math.max(var18, var19);
-                if (var20 > 0) {
-                    if (var18 == var20 || var19 == var20) {
-                        state2 = woodBS;
-                    }
+        if (deltas[mainAxis] != 0) {
+            byte coordA = otherCoordPairs[mainAxis];
+            byte coordB = otherCoordPairs[mainAxis + 3];
+            byte stepDir = deltas[mainAxis] > 0 ? (byte) 1 : (byte) -1;
+            float stepA = (float) deltas[coordA] / (float) deltas[mainAxis];
+            float stepB = (float) deltas[coordB] / (float) deltas[mainAxis];
+            int endVal = deltas[mainAxis] + stepDir;
+            int[] current = deltas;
+            for (int step = 0; step != endVal; step += stepDir) {
+                current[mainAxis] = Mth.floor(start[mainAxis] + step + 0.5F);
+                current[coordA] = Mth.floor(start[coordA] + step * stepA + 0.5F);
+                current[coordB] = Mth.floor(start[coordB] + step * stepB + 0.5F);
+                BlockState blockState = logState;
+                int dx = Math.abs(current[0] - start[0]);
+                int dz = Math.abs(current[2] - start[2]);
+                int maxDist = Math.max(dx, dz);
+                if (maxDist > 0 && (dx == maxDist || dz == maxDist)) {
+                    blockState = woodState;
                 }
-                this.setBlockAndNotifyAdequately(world, var14[0], var14[1], var14[2], state2);
+                this.setBlockAndNotifyAdequately(world, current[0], current[1], current[2], blockState);
             }
         }
     }
@@ -540,37 +529,32 @@ public class MassiveTreeGenerator {
 
     private int[] checkScratch = new int[3];
 
-    private int checkBlockLine(int[] par1, int[] par2) {
-        int t;
-        int[] var3 = checkScratch;
-        byte var5 = 0;
+    private int checkBlockLine(int[] start, int[] end) {
+        int[] deltas = checkScratch;
+        byte mainAxis = 0;
         for (byte i = 0; i < 3; ++i) {
-            int a = par2[i] - par1[i], b = ((t = a >> 31) ^ a) - t;
-            var3[i] = a;
-            if (b > ((a = var3[var5]) ^ (t = a >> 31)) - t)
-                var5 = i;
+            int delta = end[i] - start[i];
+            int absDelta = Math.abs(delta);
+            deltas[i] = delta;
+            if (absDelta > Math.abs(deltas[mainAxis]))
+                mainAxis = i;
         }
-        if (var3[var5] == 0)
+        if (deltas[mainAxis] == 0)
             return -1;
         else {
-            byte var6 = otherCoordPairs[var5];
-            byte var7 = otherCoordPairs[var5 + 3];
-            byte var8;
-            if (var3[var5] > 0) {
-                var8 = 1;
-            } else {
-                var8 = -1;
-            }
-            float var9 = (float) var3[var6] / (float) var3[var5];
-            float var11 = (float) var3[var7] / (float) var3[var5];
-            int var14 = 0;
-            int var15 = var3[var5] + var8;
-            int[] var13 = var3;
-            for (; var14 != var15; var14 += var8) {
-                var13[var5] = par1[var5] + var14;
-                var13[var6] = Mth.floor(par1[var6] + var14 * var9);
-                var13[var7] = Mth.floor(par1[var7] + var14 * var11);
-                BlockPos pos = new BlockPos(var13[0], var13[1], var13[2]);
+            byte coordA = otherCoordPairs[mainAxis];
+            byte coordB = otherCoordPairs[mainAxis + 3];
+            byte stepDir = deltas[mainAxis] > 0 ? (byte) 1 : (byte) -1;
+            float stepA = (float) deltas[coordA] / (float) deltas[mainAxis];
+            float stepB = (float) deltas[coordB] / (float) deltas[mainAxis];
+            int step = 0;
+            int endVal = deltas[mainAxis] + stepDir;
+            int[] current = deltas;
+            for (; step != endVal; step += stepDir) {
+                current[mainAxis] = start[mainAxis] + step;
+                current[coordA] = Mth.floor(start[coordA] + step * stepA);
+                current[coordB] = Mth.floor(start[coordB] + step * stepB);
+                BlockPos pos = new BlockPos(current[0], current[1], current[2]);
                 BlockState state = world.getBlockState(pos);
                 Block block = state.getBlock();
                 if (safeGrowth ? !(canBeReplacedByLogs(state, world, pos) ||
@@ -578,7 +562,7 @@ public class MassiveTreeGenerator {
                         block == Blocks.BEDROCK)
                     break;
             }
-            return var14 == var15 ? -1 : ((t = var14 >> 31) ^ var14) - t;
+            return step == endVal ? -1 : Math.abs(step);
         }
     }
 
@@ -600,9 +584,9 @@ public class MassiveTreeGenerator {
             return false;
         }
         else {
-            int[] var5 = new int[]{basePos[0], basePos[1], basePos[2]};
-            int[] var6 = new int[]{basePos[0], basePos[1] + heightLimit - 1, basePos[2]};
-            newHeight = this.checkBlockLine(var5, var6);
+            int[] checkStart = new int[]{basePos[0], basePos[1], basePos[2]};
+            int[] checkEnd = new int[]{basePos[0], basePos[1] + heightLimit - 1, basePos[2]};
+            newHeight = this.checkBlockLine(checkStart, checkEnd);
             if (newHeight == -1) newHeight = heightLimit;
             if (newHeight < minHeight)
                 return false;
@@ -613,23 +597,23 @@ public class MassiveTreeGenerator {
             height += rand.nextInt(heightLimit - height);
 
             if (safeGrowth) {
-                int var1 = basePos[0];
-                int var2 = basePos[1];
-                int var3 = basePos[1] + height;
-                int var4 = basePos[2];
-                var5 = new int[]{var1, var2, var4};
-                var6 = new int[]{var1, var3, var4};
+                int x = basePos[0];
+                int y = basePos[1];
+                int topY = basePos[1] + height;
+                int z = basePos[2];
+                checkStart = new int[]{x, y, z};
+                checkEnd = new int[]{x, topY, z};
                 double lim = 400f / trunkSize;
                 for (int i = -trunkSize; i <= trunkSize; i++) {
-                    var5[0] = var1 + i;
-                    var6[0] = var1 + i;
+                    checkStart[0] = x + i;
+                    checkEnd[0] = x + i;
                     for (int j = -trunkSize; j <= trunkSize; j++) {
                         if ((j * j + i * i) * 4 < trunkSize * trunkSize * 5) {
-                            var5[2] = var4 + j;
-                            var6[2] = var4 + j;
+                            checkStart[2] = z + j;
+                            checkEnd[2] = z + j;
                             if (slopeTrunk)
-                                var6[1] = var2 + sinc2(lim * i, lim * j, height);
-                            int t = checkBlockLine(var5, var6);
+                                checkEnd[1] = y + sinc2(lim * i, lim * j, height);
+                            int t = checkBlockLine(checkStart, checkEnd);
                             if (t != -1)
                                 return false;
                         }
@@ -658,23 +642,23 @@ public class MassiveTreeGenerator {
         return this;
     }
 
-    public MassiveTreeGenerator setLeafAttenuation(float a) {
-        heightAttenuation = a;
+    public MassiveTreeGenerator setLeafAttenuation(float attenuation) {
+        heightAttenuation = attenuation;
         return this;
     }
 
-    public MassiveTreeGenerator setSloped(boolean s) {
-        slopeTrunk = s;
+    public MassiveTreeGenerator setSloped(boolean sloped) {
+        slopeTrunk = sloped;
         return this;
     }
 
-    public MassiveTreeGenerator setSafe(boolean s) {
-        safeGrowth = s;
+    public MassiveTreeGenerator setSafe(boolean safe) {
+        safeGrowth = safe;
         return this;
     }
 
-    public boolean generate(Level world, RandomSource par2Random, BlockPos pos) {
-        return generate(world, par2Random.nextLong(), pos);
+    public boolean generate(Level world, RandomSource random, BlockPos pos) {
+        return generate(world, random.nextLong(), pos);
     }
 
     /**
